@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, datetime
 
 st.set_page_config(
     page_title="Cargro Charterportaal MVP",
@@ -15,15 +15,14 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
 
-        html, body, [class*="css"] {
-            font-family: 'Inter', sans-serif;
-        }
+        html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+        .block-container { padding-top: 1rem; padding-bottom: 2rem; }
 
-        .block-container {
-            padding-top: 1.15rem;
-            padding-bottom: 2rem;
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #f8fbff 0%, #eef6ff 100%);
+            border-right: 1px solid #dbeafe;
         }
 
         .hero {
@@ -31,27 +30,15 @@ st.markdown(
             overflow: hidden;
             color: white;
             padding: 30px;
-            border-radius: 28px;
+            border-radius: 30px;
             margin-bottom: 22px;
             background:
-                radial-gradient(circle at top right, rgba(47, 128, 237, 0.42), transparent 34%),
+                radial-gradient(circle at top right, rgba(59, 130, 246, 0.42), transparent 34%),
                 linear-gradient(135deg, #07111f 0%, #101828 52%, #1d4ed8 130%);
             box-shadow: 0 24px 60px rgba(16, 24, 40, 0.18);
         }
-
-        .hero h1 {
-            margin: 0 0 8px 0;
-            font-size: 42px;
-            letter-spacing: -1.1px;
-        }
-
-        .hero p {
-            color: #d0d5dd;
-            max-width: 950px;
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.55;
-        }
+        .hero h1 { margin: 0 0 8px 0; font-size: 42px; letter-spacing: -1.1px; }
+        .hero p { color: #d0d5dd; max-width: 980px; margin: 0; font-size: 16px; line-height: 1.55; }
 
         .tag {
             display: inline-block;
@@ -62,7 +49,7 @@ st.markdown(
             border: 1px solid rgba(255, 255, 255, 0.20);
             color: #fff;
             font-size: 13px;
-            font-weight: 800;
+            font-weight: 900;
         }
 
         .section-title {
@@ -72,142 +59,110 @@ st.markdown(
             margin: 16px 0 8px 0;
             color: #101828;
         }
-
-        .subtle {
-            color: #667085;
-            font-size: 14px;
-            line-height: 1.5;
-        }
+        .subtle { color: #667085; font-size: 14px; line-height: 1.5; }
 
         .portal-banner {
-            padding: 15px 18px;
+            padding: 16px 18px;
             border-radius: 18px;
-            background: #eff6ff;
+            background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
             border: 1px solid #bfdbfe;
             color: #1e3a8a;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 16px;
+        }
+
+        .side-card {
+            padding: 16px;
+            background: white;
+            border: 1px solid #bfdbfe;
+            border-radius: 18px;
+            box-shadow: 0 10px 24px rgba(29, 78, 216, 0.08);
+            margin: 12px 0 16px 0;
+            color: #1e3a8a;
+            font-weight: 800;
         }
 
         .filter-panel {
-            background: linear-gradient(135deg, #eff6ff 0%, #f8fafc 100%);
-            border: 1px solid #bfdbfe;
-            border-radius: 20px;
-            padding: 16px 18px;
+            background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 60%, #ffffff 100%);
+            border: 1px solid #93c5fd;
+            border-radius: 22px;
+            padding: 18px;
             margin: 8px 0 18px 0;
+            box-shadow: 0 8px 24px rgba(29, 78, 216, 0.08);
         }
 
         .route-card {
-            border: 1px solid #e4e7ec;
-            border-radius: 22px;
+            border: 1px solid #dbeafe;
+            border-radius: 24px;
             padding: 20px;
             margin-bottom: 16px;
-            background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-            box-shadow: 0 12px 34px rgba(16, 24, 40, 0.07);
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            box-shadow: 0 14px 34px rgba(16, 24, 40, 0.07);
         }
+        .route-title { font-size: 21px; font-weight: 900; color: #101828; margin-bottom: 4px; }
+        .route-meta { color: #667085; font-size: 13px; margin-bottom: 12px; }
 
-        .route-title {
-            font-size: 21px;
-            font-weight: 900;
-            color: #101828;
-            margin-bottom: 4px;
-        }
-
-        .route-meta {
-            color: #667085;
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
-
-        .pill {
+        .pill, .pill-blue, .pill-dark, .pill-orange, .pill-green {
             display: inline-block;
             padding: 5px 11px;
             border-radius: 999px;
-            background: #f2f4f7;
-            color: #344054;
-            font-size: 12px;
-            font-weight: 800;
-            margin: 3px 5px 3px 0;
-            border: 1px solid #e4e7ec;
-        }
-
-        .pill-blue {
-            display: inline-block;
-            padding: 5px 11px;
-            border-radius: 999px;
-            background: #dbeafe;
-            color: #1d4ed8;
             font-size: 12px;
             font-weight: 900;
             margin: 3px 5px 3px 0;
-            border: 1px solid #bfdbfe;
+            border: 1px solid transparent;
         }
-
-        .pill-dark {
-            display: inline-block;
-            padding: 5px 11px;
-            border-radius: 999px;
-            background: #101828;
-            color: white;
-            font-size: 12px;
-            font-weight: 900;
-            margin: 3px 5px 3px 0;
-        }
+        .pill { background: #f2f4f7; color: #344054; border-color: #e4e7ec; }
+        .pill-blue { background: #dbeafe; color: #1d4ed8; border-color: #bfdbfe; }
+        .pill-dark { background: #101828; color: white; }
+        .pill-orange { background: #ffedd5; color: #c2410c; border-color: #fed7aa; }
+        .pill-green { background: #dcfce7; color: #15803d; border-color: #bbf7d0; }
 
         .price-box {
-            border-radius: 18px;
+            border-radius: 20px;
             padding: 16px;
             background: #101828;
             color: white;
             min-height: 126px;
             box-shadow: 0 14px 30px rgba(16, 24, 40, 0.18);
         }
-
         .price-box-blue {
-            border-radius: 18px;
+            border-radius: 20px;
             padding: 16px;
-            background: linear-gradient(135deg, #1d4ed8 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #2563eb 0%, #0f172a 100%);
             color: white;
             min-height: 126px;
             box-shadow: 0 14px 30px rgba(29, 78, 216, 0.22);
         }
-
-        .price-label {
-            color: #d0d5dd;
-            font-size: 12px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .price-value {
-            font-size: 30px;
-            font-weight: 900;
-            margin-top: 6px;
-        }
+        .price-label { color: #d0d5dd; font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
+        .price-value { font-size: 30px; font-weight: 900; margin-top: 6px; }
 
         .good { color: #027a48; font-weight: 900; }
         .warn { color: #b54708; font-weight: 900; }
         .bad { color: #b42318; font-weight: 900; }
 
-        .mini-card {
-            border: 1px solid #e4e7ec;
+        div[data-testid="stMetric"] {
+            background: #ffffff;
+            border: 1px solid #dbeafe;
+            padding: 14px 16px;
             border-radius: 18px;
-            padding: 16px;
-            background: white;
             box-shadow: 0 8px 22px rgba(16, 24, 40, 0.045);
-            min-height: 132px;
         }
 
-        .mini-card h4 {
-            margin: 0 0 8px 0;
-            color: #101828;
-            font-size: 15px;
+        .stButton > button {
+            border-radius: 14px !important;
+            border: 0 !important;
+            font-weight: 900 !important;
+            padding: 0.6rem 1.05rem !important;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+            color: white !important;
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28) !important;
+            transition: all 0.15s ease-in-out !important;
         }
-
-        .mini-card strong {
-            font-size: 22px;
-            color: #101828;
+        .stButton > button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 26px rgba(37, 99, 235, 0.34) !important;
+            background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+            color: white !important;
         }
 
         .data-flow {
@@ -215,23 +170,9 @@ st.markdown(
             border-radius: 20px;
             background: #eff6ff;
             border: 1px dashed #60a5fa;
-            font-weight: 800;
+            font-weight: 900;
             text-align: center;
             color: #1e3a8a;
-        }
-
-        div[data-testid="stMetric"] {
-            background: #ffffff;
-            border: 1px solid #e4e7ec;
-            padding: 14px 16px;
-            border-radius: 18px;
-            box-shadow: 0 8px 22px rgba(16, 24, 40, 0.045);
-        }
-
-        .stButton > button[kind="primary"] {
-            font-weight: 900;
-            background: #1d4ed8;
-            border-color: #1d4ed8;
         }
     </style>
     """,
@@ -247,7 +188,6 @@ VEHICLE_KM_RATES = {
     "Bakwagen": 0.45,
     "Bakwagen laadklep": 0.50,
 }
-
 ZONE_BADGES = {
     "Midden": "🟣 Midden",
     "Oost": "🟢 Oost",
@@ -256,8 +196,8 @@ ZONE_BADGES = {
     "West": "🟡 West",
     "Randstad": "⚫ Randstad",
 }
-
 CHARTER_PASSWORD = "demo123"
+
 
 # ------------------------------------------------------------
 # Fake data
@@ -265,91 +205,11 @@ CHARTER_PASSWORD = "demo123"
 def load_demo_data():
     charters = pd.DataFrame(
         [
-            {
-                "charter_id": "CH-001",
-                "company": "LuxeLine Transport",
-                "contact": "Daya",
-                "email": "daya@example.com",
-                "home_city": "Nijmegen",
-                "zones": "Oost, Midden, Zuid",
-                "status": "Active",
-                "rating": 4.8,
-                "on_time_pct": 96,
-                "damage_rate": 0.8,
-                "acceptance_pct": 82,
-                "documents": "Complete",
-                "this_week_routes": 3,
-                "this_week_earnings": 1998.25,
-                "allocation_priority": 68,
-            },
-            {
-                "charter_id": "CH-002",
-                "company": "Duiven Express",
-                "contact": "Ravi",
-                "email": "ravi@example.com",
-                "home_city": "Duiven",
-                "zones": "Oost",
-                "status": "Trial",
-                "rating": 4.3,
-                "on_time_pct": 91,
-                "damage_rate": 1.1,
-                "acceptance_pct": 70,
-                "documents": "NIWO pending",
-                "this_week_routes": 1,
-                "this_week_earnings": 461.80,
-                "allocation_priority": 86,
-            },
-            {
-                "charter_id": "CH-003",
-                "company": "Randstad Koeriers",
-                "contact": "Ahmed",
-                "email": "ahmed@example.com",
-                "home_city": "Utrecht",
-                "zones": "Randstad, Midden, West",
-                "status": "Active",
-                "rating": 4.6,
-                "on_time_pct": 94,
-                "damage_rate": 0.6,
-                "acceptance_pct": 76,
-                "documents": "Complete",
-                "this_week_routes": 4,
-                "this_week_earnings": 2715.45,
-                "allocation_priority": 51,
-            },
-            {
-                "charter_id": "CH-004",
-                "company": "Noord Carrier Network",
-                "contact": "Jeroen",
-                "email": "jeroen@example.com",
-                "home_city": "Groningen",
-                "zones": "Noord",
-                "status": "Active",
-                "rating": 4.4,
-                "on_time_pct": 89,
-                "damage_rate": 1.4,
-                "acceptance_pct": 66,
-                "documents": "Insurance review",
-                "this_week_routes": 1,
-                "this_week_earnings": 695.20,
-                "allocation_priority": 91,
-            },
-            {
-                "charter_id": "CH-005",
-                "company": "Zuid Logistics Partner",
-                "contact": "Sem",
-                "email": "sem@example.com",
-                "home_city": "Eindhoven",
-                "zones": "Zuid, Midden",
-                "status": "Active",
-                "rating": 4.1,
-                "on_time_pct": 87,
-                "damage_rate": 2.0,
-                "acceptance_pct": 63,
-                "documents": "Complete",
-                "this_week_routes": 0,
-                "this_week_earnings": 0.00,
-                "allocation_priority": 95,
-            },
+            {"charter_id": "CH-001", "company": "LuxeLine Transport", "contact": "Daya", "email": "daya@example.com", "home_city": "Nijmegen", "zones": "Oost, Midden, Zuid", "status": "Active", "rating": 4.8, "on_time_pct": 96, "damage_rate": 0.8, "acceptance_pct": 82, "documents": "Complete", "this_week_routes": 3, "this_week_earnings": 1998.25, "allocation_priority": 68},
+            {"charter_id": "CH-002", "company": "Duiven Express", "contact": "Ravi", "email": "ravi@example.com", "home_city": "Duiven", "zones": "Oost", "status": "Trial", "rating": 4.3, "on_time_pct": 91, "damage_rate": 1.1, "acceptance_pct": 70, "documents": "NIWO pending", "this_week_routes": 1, "this_week_earnings": 461.80, "allocation_priority": 86},
+            {"charter_id": "CH-003", "company": "Randstad Koeriers", "contact": "Ahmed", "email": "ahmed@example.com", "home_city": "Utrecht", "zones": "Randstad, Midden, West", "status": "Active", "rating": 4.6, "on_time_pct": 94, "damage_rate": 0.6, "acceptance_pct": 76, "documents": "Complete", "this_week_routes": 4, "this_week_earnings": 2715.45, "allocation_priority": 51},
+            {"charter_id": "CH-004", "company": "Noord Carrier Network", "contact": "Jeroen", "email": "jeroen@example.com", "home_city": "Groningen", "zones": "Noord", "status": "Active", "rating": 4.4, "on_time_pct": 89, "damage_rate": 1.4, "acceptance_pct": 66, "documents": "Insurance review", "this_week_routes": 1, "this_week_earnings": 695.20, "allocation_priority": 91},
+            {"charter_id": "CH-005", "company": "Zuid Logistics Partner", "contact": "Sem", "email": "sem@example.com", "home_city": "Eindhoven", "zones": "Zuid, Midden", "status": "Active", "rating": 4.1, "on_time_pct": 87, "damage_rate": 2.0, "acceptance_pct": 63, "documents": "Complete", "this_week_routes": 0, "this_week_earnings": 0.00, "allocation_priority": 95},
         ]
     )
 
@@ -377,186 +237,12 @@ def load_demo_data():
 
     routes = pd.DataFrame(
         [
-            {
-                "route_id": "MX-2026-0629-001",
-                "date": "2026-06-29",
-                "source": "MendriX route",
-                "route_type": "Mixed delivery route",
-                "account_group": "Viking Choice + mixed e-commerce",
-                "zone": "Oost",
-                "from_city": "Wijchen",
-                "first_stop": "Zwolle",
-                "last_stop": "Beek-Ubbergen",
-                "vehicle_needed": "Bakwagen",
-                "required_equipment": "Steekwagen, spanbanden",
-                "description": "Long mixed route with bulky consumer goods. Driver must call customers before arrival.",
-                "loading_time": "06:30",
-                "stops": 17,
-                "packages_optional": 46,
-                "kg": 780,
-                "km": 727,
-                "hours": 14.0,
-                "stop_tariff": 12.50,
-                "hour_rate": 24.00,
-                "cargro_customer_revenue": 895.00,
-                "status": "Assigned",
-                "assigned_charter": "LuxeLine Transport",
-                "bidding_allowed": "No",
-                "bids_count": 0,
-                "invoice_status": "To be paid",
-                "dispute_status": "None",
-                "due_date": "2026-07-05",
-            },
-            {
-                "route_id": "MX-2026-0629-002",
-                "date": "2026-06-29",
-                "source": "MendriX route",
-                "route_type": "Mixed delivery route",
-                "account_group": "Mixed toys / e-commerce",
-                "zone": "Midden",
-                "from_city": "Wijchen",
-                "first_stop": "Amersfoort",
-                "last_stop": "Hilversum",
-                "vehicle_needed": "L4",
-                "required_equipment": "Steekwagen",
-                "description": "Mixed delivery route. Medium volume, several apartment buildings.",
-                "loading_time": "07:00",
-                "stops": 14,
-                "packages_optional": 39,
-                "kg": 520,
-                "km": 322,
-                "hours": 9.5,
-                "stop_tariff": 12.00,
-                "hour_rate": 23.00,
-                "cargro_customer_revenue": 625.00,
-                "status": "Open",
-                "assigned_charter": "",
-                "bidding_allowed": "Yes",
-                "bids_count": 3,
-                "invoice_status": "Not assigned",
-                "dispute_status": "None",
-                "due_date": "",
-            },
-            {
-                "route_id": "MX-2026-0629-003",
-                "date": "2026-06-29",
-                "source": "MendriX route",
-                "route_type": "Mixed delivery route",
-                "account_group": "Barori BV + mixed parcels",
-                "zone": "Randstad",
-                "from_city": "Wijchen",
-                "first_stop": "Rotterdam",
-                "last_stop": "Den Haag",
-                "vehicle_needed": "L4",
-                "required_equipment": "Geen extra materiaal",
-                "description": "Urban mixed route with parking difficulty. Efficient driver preferred.",
-                "loading_time": "07:15",
-                "stops": 22,
-                "packages_optional": 62,
-                "kg": 610,
-                "km": 388,
-                "hours": 11.0,
-                "stop_tariff": 12.25,
-                "hour_rate": 23.50,
-                "cargro_customer_revenue": 825.00,
-                "status": "Assigned",
-                "assigned_charter": "Randstad Koeriers",
-                "bidding_allowed": "No",
-                "bids_count": 0,
-                "invoice_status": "Pending approval",
-                "dispute_status": "Open",
-                "due_date": "2026-07-05",
-            },
-            {
-                "route_id": "MX-2026-0629-004",
-                "date": "2026-06-29",
-                "source": "MendriX route",
-                "route_type": "Heavy mixed delivery route",
-                "account_group": "Mixed bulky goods",
-                "zone": "Noord",
-                "from_city": "Wijchen",
-                "first_stop": "Assen",
-                "last_stop": "Groningen",
-                "vehicle_needed": "Bakwagen laadklep",
-                "required_equipment": "Laadklep, pompwagen, steekwagen",
-                "description": "Heavy mixed route. Nobody accepted initial price. Route is open for bids.",
-                "loading_time": "06:15",
-                "stops": 18,
-                "packages_optional": 61,
-                "kg": 1120,
-                "km": 455,
-                "hours": 11.0,
-                "stop_tariff": 12.50,
-                "hour_rate": 24.00,
-                "cargro_customer_revenue": 980.00,
-                "status": "Open for bid",
-                "assigned_charter": "",
-                "bidding_allowed": "Yes",
-                "bids_count": 4,
-                "invoice_status": "Not assigned",
-                "dispute_status": "None",
-                "due_date": "",
-            },
-            {
-                "route_id": "MX-2026-0629-005",
-                "date": "2026-06-29",
-                "source": "MendriX route",
-                "route_type": "Mixed delivery route",
-                "account_group": "Mixed bulky goods",
-                "zone": "Zuid",
-                "from_city": "Wijchen",
-                "first_stop": "Eindhoven",
-                "last_stop": "Maastricht",
-                "vehicle_needed": "Bakwagen",
-                "required_equipment": "Laadklep aanbevolen, steekwagen verplicht",
-                "description": "High kg and long mixed route. Good candidate for fair distribution to under-used charter.",
-                "loading_time": "06:45",
-                "stops": 16,
-                "packages_optional": 53,
-                "kg": 910,
-                "km": 412,
-                "hours": 10.5,
-                "stop_tariff": 12.50,
-                "hour_rate": 24.00,
-                "cargro_customer_revenue": 815.00,
-                "status": "Open",
-                "assigned_charter": "",
-                "bidding_allowed": "Yes",
-                "bids_count": 2,
-                "invoice_status": "Not assigned",
-                "dispute_status": "None",
-                "due_date": "",
-            },
-            {
-                "route_id": "MX-2026-0628-006",
-                "date": "2026-06-28",
-                "source": "Manual route",
-                "route_type": "Short mixed route",
-                "account_group": "Mixed parcels",
-                "zone": "Oost",
-                "from_city": "Wijchen",
-                "first_stop": "Arnhem",
-                "last_stop": "Nijmegen",
-                "vehicle_needed": "L3",
-                "required_equipment": "Geen extra materiaal",
-                "description": "Short mixed route. Good for newer charter or trial driver.",
-                "loading_time": "08:00",
-                "stops": 9,
-                "packages_optional": 20,
-                "kg": 260,
-                "km": 148,
-                "hours": 5.0,
-                "stop_tariff": 11.75,
-                "hour_rate": 22.00,
-                "cargro_customer_revenue": 360.00,
-                "status": "Completed",
-                "assigned_charter": "Duiven Express",
-                "bidding_allowed": "No",
-                "bids_count": 0,
-                "invoice_status": "Paid",
-                "dispute_status": "None",
-                "due_date": "2026-07-02",
-            },
+            {"route_id": "MX-2026-0629-001", "date": "2026-06-29", "source": "MendriX route", "route_type": "Mixed delivery route", "account_group": "Viking Choice + mixed e-commerce", "zone": "Oost", "from_city": "Wijchen", "first_stop": "Zwolle", "last_stop": "Beek-Ubbergen", "vehicle_needed": "Bakwagen", "required_equipment": "Steekwagen, spanbanden", "description": "Long mixed route with bulky consumer goods. Driver must call customers before arrival.", "loading_time": "06:30", "stops": 17, "packages_optional": 46, "kg": 780, "km": 727, "hours": 14.0, "stop_tariff": 12.50, "hour_rate": 24.00, "cargro_customer_revenue": 895.00, "status": "Assigned", "assigned_charter": "LuxeLine Transport", "bidding_allowed": "No", "bids_count": 0, "invoice_status": "To be paid", "dispute_status": "None", "due_date": "2026-07-05"},
+            {"route_id": "MX-2026-0629-002", "date": "2026-06-29", "source": "MendriX route", "route_type": "Mixed delivery route", "account_group": "Mixed toys / e-commerce", "zone": "Midden", "from_city": "Wijchen", "first_stop": "Amersfoort", "last_stop": "Hilversum", "vehicle_needed": "L4", "required_equipment": "Steekwagen", "description": "Mixed delivery route. Medium volume, several apartment buildings.", "loading_time": "07:00", "stops": 14, "packages_optional": 39, "kg": 520, "km": 322, "hours": 9.5, "stop_tariff": 12.00, "hour_rate": 23.00, "cargro_customer_revenue": 625.00, "status": "Open", "assigned_charter": "", "bidding_allowed": "Yes", "bids_count": 3, "invoice_status": "Not assigned", "dispute_status": "None", "due_date": ""},
+            {"route_id": "MX-2026-0629-003", "date": "2026-06-29", "source": "MendriX route", "route_type": "Mixed delivery route", "account_group": "Barori BV + mixed parcels", "zone": "Randstad", "from_city": "Wijchen", "first_stop": "Rotterdam", "last_stop": "Den Haag", "vehicle_needed": "L4", "required_equipment": "Geen extra materiaal", "description": "Urban mixed route with parking difficulty. Efficient driver preferred.", "loading_time": "07:15", "stops": 22, "packages_optional": 62, "kg": 610, "km": 388, "hours": 11.0, "stop_tariff": 12.25, "hour_rate": 23.50, "cargro_customer_revenue": 825.00, "status": "Assigned", "assigned_charter": "Randstad Koeriers", "bidding_allowed": "No", "bids_count": 0, "invoice_status": "Pending approval", "dispute_status": "Open", "due_date": "2026-07-05"},
+            {"route_id": "MX-2026-0629-004", "date": "2026-06-29", "source": "MendriX route", "route_type": "Heavy mixed delivery route", "account_group": "Mixed bulky goods", "zone": "Noord", "from_city": "Wijchen", "first_stop": "Assen", "last_stop": "Groningen", "vehicle_needed": "Bakwagen laadklep", "required_equipment": "Laadklep, pompwagen, steekwagen", "description": "Heavy mixed route. Nobody accepted initial price. Route is open for bids.", "loading_time": "06:15", "stops": 18, "packages_optional": 61, "kg": 1120, "km": 455, "hours": 11.0, "stop_tariff": 12.50, "hour_rate": 24.00, "cargro_customer_revenue": 980.00, "status": "Open for bid", "assigned_charter": "", "bidding_allowed": "Yes", "bids_count": 4, "invoice_status": "Not assigned", "dispute_status": "None", "due_date": ""},
+            {"route_id": "MX-2026-0629-005", "date": "2026-06-29", "source": "MendriX route", "route_type": "Mixed delivery route", "account_group": "Mixed bulky goods", "zone": "Zuid", "from_city": "Wijchen", "first_stop": "Eindhoven", "last_stop": "Maastricht", "vehicle_needed": "Bakwagen", "required_equipment": "Laadklep aanbevolen, steekwagen verplicht", "description": "High kg and long mixed route. Good candidate for fair distribution to under-used charter.", "loading_time": "06:45", "stops": 16, "packages_optional": 53, "kg": 910, "km": 412, "hours": 10.5, "stop_tariff": 12.50, "hour_rate": 24.00, "cargro_customer_revenue": 815.00, "status": "Open", "assigned_charter": "", "bidding_allowed": "Yes", "bids_count": 2, "invoice_status": "Not assigned", "dispute_status": "None", "due_date": ""},
+            {"route_id": "MX-2026-0628-006", "date": "2026-06-28", "source": "Manual route", "route_type": "Short mixed route", "account_group": "Mixed parcels", "zone": "Oost", "from_city": "Wijchen", "first_stop": "Arnhem", "last_stop": "Nijmegen", "vehicle_needed": "L3", "required_equipment": "Geen extra materiaal", "description": "Short mixed route. Good for newer charter or trial driver.", "loading_time": "08:00", "stops": 9, "packages_optional": 20, "kg": 260, "km": 148, "hours": 5.0, "stop_tariff": 11.75, "hour_rate": 22.00, "cargro_customer_revenue": 360.00, "status": "Completed", "assigned_charter": "Duiven Express", "bidding_allowed": "No", "bids_count": 0, "invoice_status": "Paid", "dispute_status": "None", "due_date": "2026-07-02"},
         ]
     )
 
@@ -574,10 +260,23 @@ def load_demo_data():
         ]
     )
 
+    requests = pd.DataFrame(
+        [
+            {"request_id": "REQ-001", "route_id": "MX-2026-0629-002", "charter": "LuxeLine Transport", "vehicle": "Bakwagen · V-123-AB", "driver": "Sukh", "request_type": "Request route", "requested_price": 499.20, "status": "To be approved", "note": "Can take it after loading slot.", "created_at": "2026-06-29 07:20"},
+            {"request_id": "REQ-002", "route_id": "MX-2026-0629-005", "charter": "Zuid Logistics Partner", "vehicle": "Bakwagen · V-918-ZL", "driver": "Sem", "request_type": "Request route", "requested_price": 637.40, "status": "To be approved", "note": "Good zone fit for us.", "created_at": "2026-06-29 07:30"},
+        ]
+    )
+
     disputes = pd.DataFrame(
         [
-            {"dispute_id": "DSP-001", "route_id": "MX-2026-0629-003", "charter": "Randstad Koeriers", "reason": "Waiting time discussion", "status": "Open", "amount": 35.00},
-            {"dispute_id": "DSP-002", "route_id": "MX-2026-0628-006", "charter": "Duiven Express", "reason": "Resolved route correction", "status": "Closed", "amount": 15.00},
+            {"dispute_id": "DSP-001", "route_id": "MX-2026-0629-003", "charter": "Randstad Koeriers", "reason": "Waiting time discussion", "status": "To handle", "amount": 35.00, "created_at": "2026-06-29"},
+            {"dispute_id": "DSP-002", "route_id": "MX-2026-0628-006", "charter": "Duiven Express", "reason": "Resolved route correction", "status": "Closed", "amount": 15.00, "created_at": "2026-06-28"},
+        ]
+    )
+
+    invoice_submissions = pd.DataFrame(
+        [
+            {"submission_id": "SUB-001", "charter": "Duiven Express", "week": "2026-W26", "amount_ex_vat": 461.80, "status": "Approved", "note": "Paid route MX-2026-0628-006"},
         ]
     )
 
@@ -585,13 +284,13 @@ def load_demo_data():
         [
             {"time": "05:58", "route_id": "MX-2026-0629-001", "event": "Planning exported route from MendriX"},
             {"time": "06:10", "route_id": "MX-2026-0629-001", "event": "Route assigned to LuxeLine Transport"},
-            {"time": "06:28", "route_id": "MX-2026-0629-001", "event": "Driver checked in at loading"},
             {"time": "07:02", "route_id": "MX-2026-0629-002", "event": "Bidding opened because route was not accepted"},
-            {"time": "07:13", "route_id": "MX-2026-0629-004", "event": "Noord route received 4 bids"},
+            {"time": "07:20", "route_id": "MX-2026-0629-002", "event": "Charter route request received"},
+            {"time": "07:33", "route_id": "MX-2026-0629-004", "event": "Noord route received 4 bids"},
         ]
     )
 
-    return charters, vehicles, drivers, routes, bids, disputes, route_events
+    return charters, vehicles, drivers, routes, bids, requests, disputes, invoice_submissions, route_events
 
 
 if "demo_initialized" not in st.session_state:
@@ -601,7 +300,9 @@ if "demo_initialized" not in st.session_state:
         st.session_state.drivers,
         st.session_state.routes,
         st.session_state.bids,
+        st.session_state.route_requests,
         st.session_state.disputes,
+        st.session_state.invoice_submissions,
         st.session_state.route_events,
     ) = load_demo_data()
     st.session_state.demo_initialized = True
@@ -611,11 +312,14 @@ vehicles = st.session_state.vehicles
 drivers = st.session_state.drivers
 routes = st.session_state.routes
 bids = st.session_state.bids
+route_requests = st.session_state.route_requests
 disputes = st.session_state.disputes
+invoice_submissions = st.session_state.invoice_submissions
 route_events = st.session_state.route_events
 
+
 # ------------------------------------------------------------
-# Calculations
+# Calculations and helpers
 # ------------------------------------------------------------
 def route_price_breakdown(row: pd.Series) -> dict:
     vehicle_rate = VEHICLE_KM_RATES.get(row["vehicle_needed"], 0.35)
@@ -642,11 +346,32 @@ def money(value: float) -> str:
     return f"€{value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def status_class(status: str) -> str:
-    if status in ["Completed", "Assigned", "Paid"]:
+    if status in ["Completed", "Assigned", "Paid", "Approved", "Closed"]:
         return "good"
-    if status in ["Open", "Open for bid", "Pending approval", "To be paid"]:
+    if status in ["Open", "Open for bid", "Pending approval", "To be paid", "To handle", "To be approved", "Submitted"]:
         return "warn"
     return "subtle"
+
+def show_table(df: pd.DataFrame, color: str = "blue"):
+    if df.empty:
+        st.info("No records yet.")
+        return
+    palette = {
+        "blue": ("#eff6ff", "#1d4ed8"),
+        "green": ("#ecfdf3", "#027a48"),
+        "orange": ("#fff7ed", "#c2410c"),
+        "purple": ("#f5f3ff", "#6d28d9"),
+    }
+    bg, fg = palette.get(color, palette["blue"])
+    styled = (
+        df.style
+        .set_properties(**{"background-color": "#ffffff", "color": "#101828"})
+        .set_table_styles([
+            {"selector": "th", "props": [("background-color", bg), ("color", fg), ("font-weight", "900"), ("border", "1px solid #d0d5dd")]},
+            {"selector": "td", "props": [("border", "1px solid #e4e7ec"), ("padding", "8px")]},
+        ])
+    )
+    st.dataframe(styled, use_container_width=True, hide_index=True)
 
 def get_best_bid(route_id: str):
     route_bids = bids[bids["route_id"] == route_id]
@@ -689,23 +414,24 @@ def fairness_recommendations(routes_df: pd.DataFrame, charters_df: pd.DataFrame)
 
 fairness_df = fairness_recommendations(routes, charters)
 
+
 # ------------------------------------------------------------
 # UI helpers
 # ------------------------------------------------------------
 def hero(mode: str):
     subtitle = (
-        "Internal planning environment for route upload, bid approval, margin, payables and performance."
+        "Internal planning environment for route upload, route requests, bid approval, disputes, margin, payables and performance."
         if mode == "Cargro Office"
-        else "Private charter environment for available routes, own bids, vehicles, drivers, invoices and disputes."
+        else "Private charter environment for available routes, own route requests, own bids, vehicles, drivers, invoices and disputes."
     )
     st.markdown(
         f"""
         <div class="hero">
             <span class="tag">MendriX route import</span>
             <span class="tag">Role-based access</span>
+            <span class="tag">Route requests</span>
             <span class="tag">Bidding</span>
-            <span class="tag">Weekly invoices</span>
-            <span class="tag">Fair allocation</span>
+            <span class="tag">Invoices + disputes</span>
             <h1>Cargro Charterportaal MVP</h1>
             <p>{subtitle}</p>
         </div>
@@ -722,7 +448,7 @@ def render_tariff_spec(row: pd.Series):
             {"Onderdeel": "Totaal routeprijs", "Berekening": "KM + stops + uren", "Bedrag": money(row["route_price"])},
         ]
     )
-    st.dataframe(spec, use_container_width=True, hide_index=True)
+    show_table(spec, "purple")
 
 def render_route_card(row: pd.Series, audience: str = "charter", charter_company: str = None, show_actions: bool = True):
     best_bid = get_best_bid(row["route_id"])
@@ -734,12 +460,19 @@ def render_route_card(row: pd.Series, audience: str = "charter", charter_company
         internal_line = ""
         if show_internal:
             internal_line = f"<p class='subtle'><b>Internal account group:</b> {row['account_group']} · <b>Optional packages:</b> {int(row['packages_optional'])}</p>"
+
         bid_line = ""
         if show_internal and best_bid is not None:
             bid_line = f"<p class='subtle'><b>Recommended/lowest bid:</b> {money(best_bid['bid_price'])} by {best_bid['charter']}</p>"
         elif not show_internal and row["bidding_allowed"] == "Yes":
             own_bid = bids[(bids["route_id"] == row["route_id"]) & (bids["charter"] == charter_company)] if charter_company else pd.DataFrame()
-            bid_line = "<p class='subtle'><b>Bidding:</b> Open for your bid</p>" if own_bid.empty else f"<p class='subtle'><b>Your bid:</b> {money(own_bid.iloc[0]['bid_price'])} · {own_bid.iloc[0]['approved']}</p>"
+            own_req = route_requests[(route_requests["route_id"] == row["route_id"]) & (route_requests["charter"] == charter_company)] if charter_company else pd.DataFrame()
+            if not own_req.empty:
+                bid_line = f"<p class='subtle'><b>Your request:</b> {own_req.iloc[0]['status']} · {own_req.iloc[0]['request_type']}</p>"
+            elif not own_bid.empty:
+                bid_line = f"<p class='subtle'><b>Your bid:</b> {money(own_bid.iloc[0]['bid_price'])} · {own_bid.iloc[0]['approved']}</p>"
+            else:
+                bid_line = "<p class='subtle'><b>Action:</b> You can request this route or place a bid.</p>"
 
         st.markdown(
             f"""
@@ -754,7 +487,7 @@ def render_route_card(row: pd.Series, audience: str = "charter", charter_company
                 <span class="pill">{row['stops']} stops</span>
                 <span class="pill">{row['km']} km</span>
                 <span class="pill">{row['hours']} hours</span>
-                <span class="pill">{row['required_equipment']}</span>
+                <span class="pill-orange">{row['required_equipment']}</span>
                 <p class="subtle" style="margin-top: 12px;">{row['description']}</p>
                 <p class="subtle"><b>Status:</b> <span class="{status_class(row['status'])}">{row['status']}</span> · <b>Assigned:</b> {row['assigned_charter'] or 'Not assigned'} · <b>Bids:</b> {int(row['bids_count'])}</p>
                 {internal_line}
@@ -763,6 +496,7 @@ def render_route_card(row: pd.Series, audience: str = "charter", charter_company
             """,
             unsafe_allow_html=True,
         )
+
     with col_right:
         if show_internal:
             st.markdown(
@@ -783,31 +517,58 @@ def render_route_card(row: pd.Series, audience: str = "charter", charter_company
                     <div class="price-label">Route payout</div>
                     <div class="price-value">{money(row['route_price'])}</div>
                     <div class="price-label" style="margin-top:10px;">Visible to charter</div>
-                    <div style="font-size:14px;color:#dbeafe;font-weight:800;">No internal Cargro margin shown</div>
+                    <div style="font-size:14px;color:#dbeafe;font-weight:900;">No internal Cargro margin shown</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
+
         with st.expander("Tarief specificatie"):
             render_tariff_spec(row)
 
         if show_actions and not show_internal and row["bidding_allowed"] == "Yes" and charter_company:
-            with st.popover("Place bid"):
+            with st.popover("Request / bid route"):
                 my_vehicles = vehicles[vehicles["charter"] == charter_company]
                 my_drivers = drivers[drivers["charter"] == charter_company]
-                selected_vehicle = st.selectbox("Vehicle for this bid", my_vehicles["type"] + " · " + my_vehicles["plate"], key=f"vehicle_{row['route_id']}")
-                selected_driver = st.selectbox("Preferred driver", my_drivers["driver"], key=f"driver_{row['route_id']}")
-                bid_amount = st.number_input("Bid price", min_value=0.0, value=float(row["route_price"] + 25), step=10.0, key=f"bid_{row['route_id']}")
+                vehicle_options = (my_vehicles["type"] + " · " + my_vehicles["plate"]).tolist()
+                driver_options = my_drivers["driver"].tolist()
+
+                action = st.radio("Action", ["Request route at listed price", "Place higher bid"], key=f"action_{row['route_id']}")
+                selected_vehicle = st.selectbox("Vehicle", vehicle_options, key=f"vehicle_{row['route_id']}")
+                selected_driver = st.selectbox("Driver", driver_options, key=f"driver_{row['route_id']}")
+                amount = float(row["route_price"])
+                if action == "Place higher bid":
+                    amount = st.number_input("Bid price", min_value=0.0, value=float(row["route_price"] + 25), step=10.0, key=f"bid_{row['route_id']}")
                 note = st.text_area("Note to planning", value="Available and can meet route requirements.", key=f"note_{row['route_id']}")
-                if st.button("Submit bid", type="primary", key=f"submit_{row['route_id']}"):
-                    new_bid = pd.DataFrame([
-                        {"route_id": row["route_id"], "charter": charter_company, "bid_price": bid_amount, "vehicle": selected_vehicle, "driver": selected_driver, "note": note, "approved": "No"}
+
+                if st.button("Send to planning", key=f"send_{row['route_id']}"):
+                    req_id = f"REQ-{len(st.session_state.route_requests) + 1:03d}"
+                    new_request = pd.DataFrame([
+                        {
+                            "request_id": req_id,
+                            "route_id": row["route_id"],
+                            "charter": charter_company,
+                            "vehicle": selected_vehicle,
+                            "driver": selected_driver,
+                            "request_type": action,
+                            "requested_price": amount,
+                            "status": "To be approved",
+                            "note": note,
+                            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                        }
                     ])
-                    st.session_state.bids = pd.concat([st.session_state.bids, new_bid], ignore_index=True)
-                    st.success("Bid submitted in demo. Planning can review it in Cargro Office.")
+                    st.session_state.route_requests = pd.concat([st.session_state.route_requests, new_request], ignore_index=True)
+
+                    if action == "Place higher bid":
+                        new_bid = pd.DataFrame([
+                            {"route_id": row["route_id"], "charter": charter_company, "bid_price": amount, "vehicle": selected_vehicle, "driver": selected_driver, "note": note, "approved": "No"}
+                        ])
+                        st.session_state.bids = pd.concat([st.session_state.bids, new_bid], ignore_index=True)
+
+                    st.success("Sent to planning. It will appear in Cargro Office under Route requests to approve.")
 
 def route_filter_panel(df: pd.DataFrame, key_prefix: str):
-    st.markdown('<div class="filter-panel"><b>🔎 Highlighted route filters</b><br><span class="subtle">Filter by zone, vehicle and status. These are the filters charters/planning will use daily.</span></div>', unsafe_allow_html=True)
+    st.markdown('<div class="filter-panel"><b>🔎 Highlighted route filters</b><br><span class="subtle">Filter by zone, vehicle and status. These are the daily operational filters.</span></div>', unsafe_allow_html=True)
     f1, f2, f3 = st.columns(3)
     with f1:
         zone_filter = st.selectbox("Zone", ["All"] + list(ZONE_BADGES.keys()), key=f"{key_prefix}_zone")
@@ -825,22 +586,26 @@ def route_filter_panel(df: pd.DataFrame, key_prefix: str):
         filtered = filtered[filtered["status"] == status_filter]
     return filtered
 
+
 # ------------------------------------------------------------
 # Sidebar access separation
 # ------------------------------------------------------------
 st.sidebar.title("🚚 Cargro Portal")
+st.sidebar.markdown('<div class="side-card">Choose a workspace below. Real version uses secure role-based accounts.</div>', unsafe_allow_html=True)
 access = st.sidebar.radio("Choose portal", ["Cargro Office", "Charter Portal"])
 st.sidebar.markdown("---")
 
 if access == "Cargro Office":
-    st.sidebar.caption("Internal area: planning, margin, payables and performance.")
+    st.sidebar.markdown('<div class="side-card">🔒 Cargro Office<br><span style="font-weight:600;color:#475467;">Internal margin, route requests, disputes, payables and dashboards.</span></div>', unsafe_allow_html=True)
     page = st.sidebar.radio(
         "Office module",
         [
             "Office overview",
             "Route upload",
             "Route management",
+            "Route requests to approve",
             "Bid approval",
+            "Disputes to handle",
             "Cargro invoices/payables",
             "Margin dashboard",
             "Charter management",
@@ -849,26 +614,28 @@ if access == "Cargro Office":
         ],
     )
     hero("Cargro Office")
-    st.markdown('<div class="portal-banner">🔒 Cargro Office view: internal revenue, margin, payables and fairness logic are only shown here.</div>', unsafe_allow_html=True)
+    st.markdown('<div class="portal-banner">🔒 Cargro Office view: internal revenue, margin, payables, requests and dispute handling are only shown here.</div>', unsafe_allow_html=True)
 
     if page == "Office overview":
         total_routes = len(routes)
         open_routes = len(routes[routes["assigned_charter"] == ""])
+        pending_requests = len(route_requests[route_requests["status"] == "To be approved"])
+        open_disputes = len(disputes[disputes["status"] == "To handle"])
         total_revenue = routes["cargro_customer_revenue"].sum()
         total_charter_cost = routes["route_price"].sum()
         total_margin = total_revenue - total_charter_cost
-        avg_margin_pct = total_margin / total_revenue * 100 if total_revenue else 0
+
         k1, k2, k3, k4, k5 = st.columns(5)
         k1.metric("Routes", total_routes)
         k2.metric("Open routes", open_routes)
-        k3.metric("Revenue", money(total_revenue))
-        k4.metric("Charter payout", money(total_charter_cost))
-        k5.metric("Margin", f"{money(total_margin)} · {avg_margin_pct:.1f}%")
+        k3.metric("To approve", pending_requests)
+        k4.metric("Disputes to handle", open_disputes)
+        k5.metric("Weekly margin", money(total_margin))
+
         st.markdown('<div class="section-title">Internal route board</div>', unsafe_allow_html=True)
-        st.dataframe(
+        show_table(
             routes[["route_id", "route_type", "account_group", "zone", "vehicle_needed", "loading_time", "stops", "kg", "km", "hours", "route_price", "cargro_customer_revenue", "cargro_margin", "status", "assigned_charter", "invoice_status", "dispute_status"]],
-            use_container_width=True,
-            hide_index=True,
+            "blue",
         )
 
     elif page == "Route upload":
@@ -889,13 +656,13 @@ if access == "Cargro Office":
                 {"field": "required_equipment", "required": "Yes", "example": "Laadklep, steekwagen, pompwagen"},
                 {"field": "description", "required": "Yes", "example": "Heavy route, customer calls required"},
             ])
-            st.dataframe(expected, use_container_width=True, hide_index=True)
+            show_table(expected, "purple")
             uploaded = st.file_uploader("Upload CSV or Excel demo file", type=["csv", "xlsx"])
             if uploaded is not None:
                 try:
                     uploaded_df = pd.read_excel(uploaded) if uploaded.name.endswith(".xlsx") else pd.read_csv(uploaded)
                     st.success("File loaded in demo view. Real version will validate and publish routes to the marketplace.")
-                    st.dataframe(uploaded_df, use_container_width=True, hide_index=True)
+                    show_table(uploaded_df, "green")
                 except Exception as exc:
                     st.error(f"Could not read file: {exc}")
 
@@ -922,7 +689,7 @@ if access == "Cargro Office":
                 equipment = st.multiselect("Needed equipment", ["Laadklep", "Steekwagen", "Pompwagen", "Spanbanden", "Customer call before arrival"], default=["Steekwagen"])
                 description = st.text_area("Omschrijving", value="Mixed route uploaded by planning. Add special instructions here.")
                 customer_revenue = st.number_input("Cargro customer revenue / internal only", min_value=0.0, value=585.00, step=10.0)
-                submitted = st.form_submit_button("🚀 Add route to portal", type="primary", use_container_width=True)
+                submitted = st.form_submit_button("🚀 Add route to portal", use_container_width=True)
                 if submitted:
                     new_route = pd.DataFrame([
                         {
@@ -965,6 +732,29 @@ if access == "Cargro Office":
         for _, row in filtered.iterrows():
             render_route_card(row, audience="admin")
 
+    elif page == "Route requests to approve":
+        st.markdown('<div class="section-title">Route requests to approve</div>', unsafe_allow_html=True)
+        st.caption("When a charter requests a route or sends a bid, planning can approve it here before assignment.")
+        pending = route_requests[route_requests["status"] == "To be approved"].copy()
+        k1, k2, k3 = st.columns(3)
+        k1.metric("Pending route requests", len(pending))
+        k2.metric("Unique charters", pending["charter"].nunique() if not pending.empty else 0)
+        k3.metric("Highest request", money(pending["requested_price"].max()) if not pending.empty else money(0))
+        show_table(route_requests, "orange")
+
+        if not pending.empty:
+            selected_req = st.selectbox("Select request to approve", pending["request_id"])
+            req = pending[pending["request_id"] == selected_req].iloc[0]
+            route = routes[routes["route_id"] == req["route_id"]].iloc[0]
+            render_route_card(route, audience="admin", show_actions=False)
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("Approve route request"):
+                    st.success(f"Demo: {req['charter']} approved for {req['route_id']}. Real version assigns route and notifies charter.")
+            with col_b:
+                if st.button("Reject / ask question"):
+                    st.warning(f"Demo: request {selected_req} marked for review.")
+
     elif page == "Bid approval":
         st.markdown('<div class="section-title">Bid approval cockpit</div>', unsafe_allow_html=True)
         selected_route_id = st.selectbox("Select route with bids", sorted(bids["route_id"].unique()))
@@ -984,33 +774,51 @@ if access == "Cargro Office":
             + route_bids["allocation_priority"] * 0.25
         ).round(1)
         st.markdown("### Bids received")
-        st.dataframe(
+        show_table(
             route_bids[["charter", "bid_price", "above_base", "vehicle", "driver", "rating", "on_time_pct", "allocation_priority", "this_week_routes", "approval_score", "approved", "note"]].sort_values("approval_score", ascending=False),
-            use_container_width=True,
-            hide_index=True,
+            "orange",
         )
         recommended = route_bids.sort_values("approval_score", ascending=False).iloc[0]
         st.success(f"Recommended approval: {recommended['charter']} at {money(recommended['bid_price'])}. Reason: price + performance + fair allocation priority.")
         selected_bidder = st.selectbox("Approve charter", route_bids["charter"])
-        if st.button("Approve selected bid in demo", type="primary"):
+        if st.button("Approve selected bid"):
             st.success(f"Demo: {selected_bidder} approved for route {selected_route_id}. Real version updates route assignment and sends notification.")
+
+    elif page == "Disputes to handle":
+        st.markdown('<div class="section-title">Disputes to handle</div>', unsafe_allow_html=True)
+        st.caption("This is not a filter. This is the internal queue for route/payment disputes that planning or finance must handle.")
+        open_disputes = disputes[disputes["status"] == "To handle"]
+        k1, k2, k3 = st.columns(3)
+        k1.metric("To handle", len(open_disputes))
+        k2.metric("Total disputed amount", money(open_disputes["amount"].sum() if not open_disputes.empty else 0))
+        k3.metric("Closed disputes", len(disputes[disputes["status"] == "Closed"]))
+        show_table(disputes, "orange")
+
+        if not open_disputes.empty:
+            selected_dispute = st.selectbox("Select dispute", open_disputes["dispute_id"])
+            dispute = open_disputes[open_disputes["dispute_id"] == selected_dispute].iloc[0]
+            st.write(f"**Route:** {dispute['route_id']}  |  **Charter:** {dispute['charter']}  |  **Reason:** {dispute['reason']}")
+            col_a, col_b = st.columns(2)
+            with col_a:
+                if st.button("Mark as resolved"):
+                    st.success(f"Demo: dispute {selected_dispute} resolved.")
+            with col_b:
+                if st.button("Ask charter for more info"):
+                    st.warning(f"Demo: message request sent to {dispute['charter']}.")
 
     elif page == "Cargro invoices/payables":
         st.markdown('<div class="section-title">Cargro invoices / payables</div>', unsafe_allow_html=True)
-        st.caption("Internal view: what Cargro owes to charters, what is due, what is disputed, and margin per route.")
+        st.caption("Internal view: what Cargro owes to charters, what is due, submitted invoices, and margin per route.")
         payable = routes[routes["assigned_charter"] != ""].copy()
         k1, k2, k3, k4 = st.columns(4)
         k1.metric("Payable to charters", money(payable["route_price"].sum()))
         k2.metric("Customer revenue", money(payable["cargro_customer_revenue"].sum()))
         k3.metric("Gross margin", money(payable["cargro_margin"].sum()))
-        k4.metric("Open disputes", len(disputes[disputes["status"] == "Open"]))
-        st.dataframe(
-            payable[["route_id", "assigned_charter", "route_type", "zone", "route_price", "cargro_customer_revenue", "cargro_margin", "invoice_status", "dispute_status", "due_date"]],
-            use_container_width=True,
-            hide_index=True,
-        )
-        st.markdown("### Disputes")
-        st.dataframe(disputes, use_container_width=True, hide_index=True)
+        k4.metric("Submitted invoices", len(invoice_submissions))
+        st.markdown("### Payables by route")
+        show_table(payable[["route_id", "assigned_charter", "route_type", "zone", "route_price", "cargro_customer_revenue", "cargro_margin", "invoice_status", "dispute_status", "due_date"]], "green")
+        st.markdown("### Charter invoice submissions")
+        show_table(invoice_submissions, "purple")
 
     elif page == "Margin dashboard":
         st.markdown('<div class="section-title">Power BI-style internal dashboard</div>', unsafe_allow_html=True)
@@ -1026,31 +834,31 @@ if access == "Cargro Office":
         tab1, tab2, tab3 = st.tabs(["Margin by route", "Margin by zone", "Charter performance"])
         with tab1:
             margin_df = routes[["route_id", "route_type", "zone", "vehicle_needed", "cargro_customer_revenue", "route_price", "cargro_margin", "margin_pct"]].copy()
-            st.dataframe(margin_df.sort_values("cargro_margin", ascending=False), use_container_width=True, hide_index=True)
+            show_table(margin_df.sort_values("cargro_margin", ascending=False), "green")
             st.bar_chart(margin_df.set_index("route_id")["cargro_margin"])
         with tab2:
             zone_df = routes.groupby("zone").agg(routes=("route_id", "count"), revenue=("cargro_customer_revenue", "sum"), payout=("route_price", "sum"), margin=("cargro_margin", "sum")).reset_index()
             zone_df["margin_pct"] = (zone_df["margin"] / zone_df["revenue"] * 100).round(1)
-            st.dataframe(zone_df, use_container_width=True, hide_index=True)
+            show_table(zone_df, "blue")
             st.bar_chart(zone_df.set_index("zone")["margin"])
         with tab3:
             perf = charters[["company", "rating", "on_time_pct", "damage_rate", "acceptance_pct", "this_week_routes", "this_week_earnings", "allocation_priority"]].copy()
-            st.dataframe(perf.sort_values("rating", ascending=False), use_container_width=True, hide_index=True)
+            show_table(perf.sort_values("rating", ascending=False), "purple")
             st.bar_chart(perf.set_index("company")[["rating", "allocation_priority"]])
 
     elif page == "Charter management":
         st.markdown('<div class="section-title">Charter management</div>', unsafe_allow_html=True)
-        st.dataframe(charters, use_container_width=True, hide_index=True)
+        show_table(charters, "blue")
         vtab, dtab = st.tabs(["Vehicles", "Drivers"])
         with vtab:
-            st.dataframe(vehicles, use_container_width=True, hide_index=True)
+            show_table(vehicles, "green")
         with dtab:
-            st.dataframe(drivers, use_container_width=True, hide_index=True)
+            show_table(drivers, "purple")
 
     elif page == "Fair allocation":
         st.markdown('<div class="section-title">Fair route distribution system</div>', unsafe_allow_html=True)
         st.caption("Internal planning tool. Charters do not see the full internal formula.")
-        st.dataframe(fairness_df, use_container_width=True, hide_index=True)
+        show_table(fairness_df, "purple")
         st.code(
             """fair_allocation_priority =
   allocation_priority * 45%
@@ -1068,16 +876,17 @@ Planning can override, but must add a reason.""",
         f1, f2, f3, f4, f5 = st.columns(5)
         f1.markdown('<div class="data-flow">1. MendriX<br>Route created</div>', unsafe_allow_html=True)
         f2.markdown('<div class="data-flow">2. Portal<br>Price + rules</div>', unsafe_allow_html=True)
-        f3.markdown('<div class="data-flow">3. Charter<br>Accept / bid</div>', unsafe_allow_html=True)
-        f4.markdown('<div class="data-flow">4. Driver<br>Load + deliver</div>', unsafe_allow_html=True)
+        f3.markdown('<div class="data-flow">3. Charter<br>Request / bid</div>', unsafe_allow_html=True)
+        f4.markdown('<div class="data-flow">4. Planning<br>Approve</div>', unsafe_allow_html=True)
         f5.markdown('<div class="data-flow">5. Finance<br>Invoice + margin</div>', unsafe_allow_html=True)
-        st.dataframe(route_events, use_container_width=True, hide_index=True)
+        show_table(route_events, "blue")
+
 
 # ------------------------------------------------------------
-# Charter portal
+# Charter Portal
 # ------------------------------------------------------------
 else:
-    st.sidebar.caption("Private charter area. Real version uses secure accounts.")
+    st.sidebar.markdown('<div class="side-card">🌟 Charter workspace<br><span style="font-weight:600;color:#475467;">Routes, requests, bids, vehicles, drivers, invoices and disputes.</span></div>', unsafe_allow_html=True)
     email = st.sidebar.text_input("Email", placeholder="daya@example.com")
     password = st.sidebar.text_input("Password", type="password", placeholder="demo123")
     st.sidebar.caption("Demo password for listed test accounts: demo123")
@@ -1087,23 +896,25 @@ else:
         hero("Charter Portal")
         st.markdown('<div class="portal-banner">🔐 Charter login required. In the real version, every charter has their own email/password and cannot access other charter accounts.</div>', unsafe_allow_html=True)
         st.write("Demo test accounts:")
-        st.dataframe(charters[["company", "email"]], use_container_width=True, hide_index=True)
+        show_table(charters[["company", "email"]], "blue")
     else:
         profile = charter_match.iloc[0]
         charter_company = profile["company"]
         st.sidebar.success(f"Logged in as {charter_company}")
         charter_page = st.sidebar.radio(
             "Charter module",
-            ["Available routes", "My assigned routes", "My bids", "My vehicles/drivers", "My invoices", "My disputes/profile"],
+            ["Available routes", "My assigned routes", "My route requests", "My bids", "My vehicles/drivers", "My invoices", "My disputes/profile"],
         )
         hero("Charter Portal")
-        st.markdown(f'<div class="portal-banner">🔐 Charter view: {charter_company}. Only your own routes, bids, vehicles, drivers, invoices and disputes are visible.</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="portal-banner">🔐 Charter view: {charter_company}. You only see your own operational and financial information.</div>', unsafe_allow_html=True)
 
         my_routes = routes[routes["assigned_charter"] == charter_company]
         my_bids = bids[bids["charter"] == charter_company]
+        my_requests = route_requests[route_requests["charter"] == charter_company]
         my_vehicles = vehicles[vehicles["charter"] == charter_company]
         my_drivers = drivers[drivers["charter"] == charter_company]
         my_disputes = disputes[disputes["charter"] == charter_company]
+        my_submissions = invoice_submissions[invoice_submissions["charter"] == charter_company]
 
         if charter_page == "Available routes":
             st.markdown('<div class="section-title">Available routes / marketplace</div>', unsafe_allow_html=True)
@@ -1118,63 +929,107 @@ else:
             if my_routes.empty:
                 st.info("No assigned routes yet.")
             else:
-                st.dataframe(my_routes[["route_id", "date", "route_type", "zone", "vehicle_needed", "loading_time", "stops", "kg", "km", "hours", "route_price", "status"]], use_container_width=True, hide_index=True)
+                show_table(my_routes[["route_id", "date", "route_type", "zone", "vehicle_needed", "loading_time", "stops", "kg", "km", "hours", "route_price", "status"]], "blue")
                 selected = st.selectbox("Open route tariff specification", my_routes["route_id"])
                 render_tariff_spec(my_routes[my_routes["route_id"] == selected].iloc[0])
 
+        elif charter_page == "My route requests":
+            st.markdown('<div class="section-title">My route requests</div>', unsafe_allow_html=True)
+            st.caption("These are the routes you requested or sent to planning for approval.")
+            show_table(my_requests[["request_id", "route_id", "request_type", "vehicle", "driver", "requested_price", "status", "note", "created_at"]], "orange")
+
         elif charter_page == "My bids":
             st.markdown('<div class="section-title">My bids</div>', unsafe_allow_html=True)
-            if my_bids.empty:
-                st.info("You have no bids yet.")
-            else:
-                st.dataframe(my_bids[["route_id", "bid_price", "vehicle", "driver", "approved", "note"]], use_container_width=True, hide_index=True)
+            show_table(my_bids[["route_id", "bid_price", "vehicle", "driver", "approved", "note"]], "purple")
 
         elif charter_page == "My vehicles/drivers":
             st.markdown('<div class="section-title">My vehicles and drivers</div>', unsafe_allow_html=True)
             vtab, dtab = st.tabs(["Vehicles", "Drivers"])
             with vtab:
-                st.dataframe(my_vehicles, use_container_width=True, hide_index=True)
-                with st.expander("Upload new vehicle demo"):
+                show_table(my_vehicles, "green")
+                with st.expander("Upload new vehicle"):
                     st.text_input("Kenteken")
                     st.selectbox("Vehicle type", list(VEHICLE_KM_RATES.keys()))
                     st.number_input("Capacity kg", value=800)
                     st.file_uploader("Upload vehicle document/photo", type=["pdf", "jpg", "png"])
-                    st.button("Save vehicle demo", type="primary")
+                    st.button("Save vehicle")
             with dtab:
-                st.dataframe(my_drivers, use_container_width=True, hide_index=True)
-                with st.expander("Add driver demo"):
+                show_table(my_drivers, "purple")
+                with st.expander("Add driver"):
                     st.text_input("Driver name")
                     st.text_input("Phone")
                     st.selectbox("License", ["B", "C", "CE"])
-                    st.button("Save driver demo", type="primary")
+                    st.button("Save driver")
 
         elif charter_page == "My invoices":
             st.markdown('<div class="section-title">My invoices</div>', unsafe_allow_html=True)
-            if my_routes.empty:
-                st.info("No invoice lines yet.")
-            else:
-                current = my_routes[my_routes["status"].isin(["Assigned", "Completed"])]
-                total_ex = current["route_price"].sum()
-                vat = total_ex * 0.21
-                total_inc = total_ex + vat
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Routes", len(current))
-                c2.metric("Stops", int(current["stops"].sum()))
-                c3.metric("Total excl. BTW", money(total_ex))
-                c4.metric("Total incl. BTW", money(total_inc))
-                st.markdown("### Current week statement")
-                st.dataframe(current[["route_id", "date", "route_type", "zone", "km", "stops", "hours", "route_price", "invoice_status", "due_date"]], use_container_width=True, hide_index=True)
-                st.markdown("### Invoice history")
+            current = my_routes[my_routes["status"].isin(["Assigned", "Completed"])]
+            total_ex = current["route_price"].sum() if not current.empty else 0
+            vat = total_ex * 0.21
+            total_inc = total_ex + vat
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Routes", len(current))
+            c2.metric("Stops", int(current["stops"].sum()) if not current.empty else 0)
+            c3.metric("Total excl. BTW", money(total_ex))
+            c4.metric("Total incl. BTW", money(total_inc))
+
+            st.markdown("### Current week statement")
+            show_table(current[["route_id", "date", "route_type", "zone", "km", "stops", "hours", "route_price", "invoice_status", "due_date"]] if not current.empty else pd.DataFrame(), "green")
+
+            st.markdown("### Submit invoice to Cargro")
+            with st.form("submit_invoice_form"):
+                invoice_no = st.text_input("Invoice number", value=f"INV-{charter_company[:3].upper()}-{datetime.now().strftime('%Y%m%d')}")
+                invoice_amount = st.number_input("Amount excl. BTW", min_value=0.0, value=float(total_ex), step=10.0)
+                invoice_file = st.file_uploader("Upload invoice PDF/photo", type=["pdf", "jpg", "png"])
+                invoice_note = st.text_area("Note", value="Invoice submitted for current week routes.")
+                submit_invoice = st.form_submit_button("Submit invoice")
+                if submit_invoice:
+                    new_submission = pd.DataFrame([
+                        {"submission_id": f"SUB-{len(st.session_state.invoice_submissions)+1:03d}", "charter": charter_company, "week": datetime.now().strftime("%Y-W%U"), "amount_ex_vat": invoice_amount, "status": "Submitted", "note": f"{invoice_no}: {invoice_note}"}
+                    ])
+                    st.session_state.invoice_submissions = pd.concat([st.session_state.invoice_submissions, new_submission], ignore_index=True)
+                    st.success("Invoice submitted in demo. Cargro can see it under invoices/payables.")
+
+            st.markdown("### Invoice history")
+            if not current.empty:
                 history = current.copy()
                 history["invoice_no"] = [f"INV-DEMO-{i+1:03d}" for i in range(len(history))]
-                st.dataframe(history[["invoice_no", "route_id", "date", "route_price", "invoice_status", "due_date"]], use_container_width=True, hide_index=True)
-                selected = st.selectbox("Dispute route", current["route_id"])
-                if st.button("Open dispute for selected route", type="primary"):
-                    st.warning(f"Demo dispute opened for {selected}. Real version sends it to Cargro planning/finance.")
+                show_table(history[["invoice_no", "route_id", "date", "route_price", "invoice_status", "due_date"]], "blue")
+            show_table(my_submissions, "purple")
+
+            st.markdown("### Create route dispute")
+            if current.empty:
+                st.info("No route available to dispute.")
+            else:
+                with st.form("invoice_dispute_form"):
+                    selected = st.selectbox("Route", current["route_id"])
+                    reason = st.text_area("Dispute reason", value="Explain what is wrong with this route/invoice line.")
+                    amount = st.number_input("Amount in discussion", min_value=0.0, value=0.0, step=5.0)
+                    if st.form_submit_button("Create dispute"):
+                        new_dispute = pd.DataFrame([
+                            {"dispute_id": f"DSP-{len(st.session_state.disputes)+1:03d}", "route_id": selected, "charter": charter_company, "reason": reason, "status": "To handle", "amount": amount, "created_at": str(date.today())}
+                        ])
+                        st.session_state.disputes = pd.concat([st.session_state.disputes, new_dispute], ignore_index=True)
+                        st.success("Dispute created. Cargro can handle it in the office dispute queue.")
 
         elif charter_page == "My disputes/profile":
             st.markdown('<div class="section-title">My disputes and profile</div>', unsafe_allow_html=True)
-            st.dataframe(my_disputes, use_container_width=True, hide_index=True)
+            show_table(my_disputes, "orange")
+            st.markdown("### Create new dispute")
+            route_options = my_routes["route_id"].tolist()
+            if not route_options:
+                st.info("No assigned routes available for dispute.")
+            else:
+                with st.form("profile_dispute_form"):
+                    selected_route = st.selectbox("Route", route_options)
+                    reason = st.text_area("Reason", value="Describe the route issue or invoice issue.")
+                    amount = st.number_input("Amount in discussion", min_value=0.0, value=0.0, step=5.0)
+                    if st.form_submit_button("Submit dispute"):
+                        new_dispute = pd.DataFrame([
+                            {"dispute_id": f"DSP-{len(st.session_state.disputes)+1:03d}", "route_id": selected_route, "charter": charter_company, "reason": reason, "status": "To handle", "amount": amount, "created_at": str(date.today())}
+                        ])
+                        st.session_state.disputes = pd.concat([st.session_state.disputes, new_dispute], ignore_index=True)
+                        st.success("Dispute submitted to Cargro.")
             st.markdown("### Profile")
             profile_public = pd.DataFrame([
                 {"field": "Company", "value": profile["company"]},
@@ -1184,4 +1039,4 @@ else:
                 {"field": "Zones", "value": profile["zones"]},
                 {"field": "Documents", "value": profile["documents"]},
             ])
-            st.dataframe(profile_public, use_container_width=True, hide_index=True)
+            show_table(profile_public, "blue")
