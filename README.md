@@ -1,18 +1,72 @@
-# Cargro Charterportaal Demo
+# Cargro Charterportaal MVP
 
-A Streamlit prototype for a Cargro-style charter portal.
+A Streamlit prototype for Stan's charterportaal idea.
 
-This is a demo layer on top of MendriX/TMS thinking. It does **not** replace MendriX. It shows how Cargro could manage charters, routes, tariffs, weekly payout, issues/returns, and future MendriX integration.
+This is a demo layer on top of MendriX/TMS thinking. It does **not** replace MendriX. MendriX stays the transport/order backbone. The charterportaal becomes Cargro's custom layer for route publishing, charter bidding, tariff explanation, weekly factuur, performance, margin and fair opportunity.
+
+## Core idea
+
+Planning creates or exports routes from MendriX. The portal receives every route with:
+
+- Route ID
+- Customer
+- Zone: Midden, Oost, Zuid, Noord, West, Randstad
+- Loading time
+- Needed vehicle type
+- Stops
+- KM
+- Hours
+- Kilos
+- Packages
+- Needed equipment: laadklep, steekwagen, pompwagen, spanbanden
+- Omschrijving / special instructions
+
+The portal then calculates a route price using:
+
+```text
+route price = (km × vehicle km rate) + (stops × stop tariff) + (hours × hour rate)
+```
+
+Example vehicle km rates in the demo:
+
+- L3: €0.25/km
+- L4: €0.35/km
+- Bakwagen: €0.45/km
+- Bakwagen laadklep: €0.50/km
 
 ## What is included
 
-- Admin / Cargro office dashboard
-- Charter dashboard
-- Driver mobile-style route view
-- Demo tariff engine
-- Weekly payout overview
-- Issues and returns overview
-- MendriX connection plan
+- Executive overview
+- Planning route upload page
+- Route marketplace
+- Open route bidding system
+- Bid approval cockpit
+- Charter account page
+- Vehicle upload section
+- Driver management section
+- Weekly factuur / self-billing overview
+- Tariff specification per route
+- Power BI-style margin dashboard
+- Charter performance dashboard
+- Earnings scoreboard
+- Fair route distribution system
+- MendriX data flow page
+
+## Why this is different from MendriX
+
+MendriX handles transport orders and route execution.
+
+The charterportaal handles Cargro's external charter network:
+
+- Who can see which route
+- Which vehicle/driver is connected to the charter
+- What the route price is based on
+- Which charters bid on difficult routes
+- Which bid planning approves
+- Whether route distribution is fair
+- Weekly factuur transparency
+- Cargro margin per route
+- Charter performance and scoreboard
 
 ## Run locally
 
@@ -31,19 +85,22 @@ streamlit run app.py
 
 ## Future real version
 
-The demo data in `app.py` should later be replaced with:
+The fake data in `app.py` should later be replaced with:
 
-- MendriX route/order import
-- Database tables for charters, routes, stops, issues and payouts
-- User login/roles
-- Document upload for KVK, BTW, NIWO, insurance and vehicle data
+- MendriX route/order import through API, CSV or middleware
+- Database tables for routes, bids, charters, vehicles, drivers and invoices
+- Real login/roles for planning, admin, charter and driver
+- Charter document uploads: KVK, BTW, NIWO, insurance, rijbewijs
+- Vehicle document/photo uploads
+- Driver app/mobile PWA
 - POD/photo/status sync back to MendriX
 - PDF weekly self-billing statements
 - Customer-specific tariffs
 - TLN/diesel correction logic
-- Zone-based charter assignment
-- Performance dashboard per charter and route
+- Approval history and dispute system
+- Fairness algorithm with override reason
+- Power BI or embedded analytics later
 
 ## Important note
 
-This prototype uses fake data only. Do not put real customer addresses, driver details, or financial data into the public demo repository.
+This prototype uses fake demo data only. Do not put real customer addresses, driver details or financial data into this public demo repository.
