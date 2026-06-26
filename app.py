@@ -570,7 +570,7 @@ def route_price_breakdown(row: pd.Series) -> dict:
 breakdowns = routes.apply(route_price_breakdown, axis=1, result_type="expand")
 routes = pd.concat([routes.drop(columns=[c for c in breakdowns.columns if c in routes.columns], errors="ignore"), breakdowns], axis=1)
 
-def get_best_bid(route_id: str) -> pd.Series | None:
+def get_best_bid(route_id: str):
     route_bids = bids[bids["route_id"] == route_id]
     if route_bids.empty:
         return None
