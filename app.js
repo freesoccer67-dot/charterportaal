@@ -2,8 +2,8 @@ const STORE_KEY = "cargro-charterportaal-first-test";
 const VAT = 0.21;
 
 const seed = {
-  role: "office",
-  view: "dashboard",
+  role: null,
+  view: "home",
   charter: "LuxeLine Transport",
   routes: [
     { id: "MX-2026-0629-001", title: "Zwolle + Beek-Ubbergen", date: "2026-06-29", zone: "Oost", from: "Wijchen", firstStop: "Zwolle", lastStop: "Beek-Ubbergen", load: "06:15", vehicle: "Bakwagen", laadruimte: "420 × 210 × 220 cm", laadklep: "Ja", stops: 17, km: 727, hours: 13.8, kg: 780, equipment: "Steekwagen, spanbanden", expectedEx: 842.00, customerRevenue: 1034.00, status: "assigned", requestStatus: "approved", assignedTo: "LuxeLine Transport", source: "MendriX", invoiceStatus: "te betalen", dispute: "none", notes: "Long mixed route. Customer calls before arrival." },
@@ -40,319 +40,127 @@ const seed = {
     { id: "VH-002", charter: "LuxeLine Transport", type: "L4", plate: "V-222-LL", capacityKg: 750, laadruimte: "370 × 178 × 190 cm", laadklep: "Nee", status: "pending" },
     { id: "VH-003", charter: "Duiven Express", type: "L3", plate: "V-456-CD", capacityKg: 650, laadruimte: "320 × 170 × 185 cm", laadklep: "Nee", status: "approved" },
     { id: "VH-005", charter: "Noord Carrier Network", type: "Bakwagen laadklep", plate: "V-333-GH", capacityKg: 1200, laadruimte: "430 × 215 × 220 cm", laadklep: "Ja", status: "approved" }
-  ]
+  ],
+  source: "local"
 };
 
 let state;
-try {
-  state = { ...structuredClone(seed), ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") };
-} catch {
-  state = structuredClone(seed);
-}
+try { state = { ...structuredClone(seed), ...JSON.parse(localStorage.getItem(STORE_KEY) || "{}") }; }
+catch { state = structuredClone(seed); }
 
 const app = document.getElementById("app");
+const hasSupabaseConfig = () => window.CARGRO_SUPABASE_URL && window.CARGRO_SUPABASE_ANON_KEY && !window.CARGRO_SUPABASE_ANON_KEY.includes("PASTE_") && window.supabase;
+const supa = () => hasSupabaseConfig() ? window.supabase.createClient(window.CARGRO_SUPABASE_URL, window.CARGRO_SUPABASE_ANON_KEY) : null;
 const euro = value => new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(value || 0));
 const number = value => new Intl.NumberFormat("nl-NL").format(Number(value || 0));
 const cls = value => String(value || "").toLowerCase().replaceAll(" ", "-");
 const marginOf = route => Number(route.customerRevenue || 0) - Number(route.expectedEx || 0);
 const vat = amount => Number(amount || 0) * (1 + VAT);
 
-function save() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
-function toast(text) {
-  const el = document.createElement("div");
-  el.className = "toast";
-  el.textContent = text;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 2600);
-}
-function go(view) { state.view = view; save(); render(); }
-function setRole(role) { state.role = role; state.view = "dashboard"; save(); render(); }
-function currentCharter() { return state.charter || state.charters[0].company; }
+function dbRoute(r) { return { id:r.id, title:r.title, route_date:r.date, zone:r.zone, from_city:r.from, first_stop:r.firstStop, last_stop:r.lastStop, loading_time:r.load, vehicle:r.vehicle, laadruimte:r.laadruimte, laadklep:r.laadklep, stops:r.stops, km:r.km, hours:r.hours, kg:r.kg, equipment:r.equipment, expected_ex:r.expectedEx, customer_revenue:r.customerRevenue, status:r.status, request_status:r.requestStatus, assigned_to:r.assignedTo || null, source:r.source, invoice_status:r.invoiceStatus, dispute:r.dispute, notes:r.notes }; }
+function appRoute(r) { return { id:r.id, title:r.title, date:r.route_date, zone:r.zone, from:r.from_city, firstStop:r.first_stop, lastStop:r.last_stop, load:r.loading_time, vehicle:r.vehicle, laadruimte:r.laadruimte, laadklep:r.laadklep, stops:r.stops, km:Number(r.km), hours:Number(r.hours), kg:Number(r.kg), equipment:r.equipment, expectedEx:Number(r.expected_ex), customerRevenue:Number(r.customer_revenue), status:r.status, requestStatus:r.request_status, assignedTo:r.assigned_to || "", source:r.source, invoiceStatus:r.invoice_status, dispute:r.dispute, notes:r.notes }; }
+function dbRequest(r) { return { id:r.id, route_id:r.routeId, charter:r.charter, type:r.type, requested_ex:r.requestedEx, vehicle:r.vehicle, driver:r.driver, status:r.status, note:r.note }; }
+function appRequest(r) { return { id:r.id, routeId:r.route_id, charter:r.charter, type:r.type, requestedEx:Number(r.requested_ex), vehicle:r.vehicle, driver:r.driver, status:r.status, note:r.note }; }
+function dbBid(b) { return { id:b.id, route_id:b.routeId, charter:b.charter, amount_ex:b.amountEx, vehicle:b.vehicle, driver:b.driver, status:b.status, note:b.note }; }
+function appBid(b) { return { id:b.id, routeId:b.route_id, charter:b.charter, amountEx:Number(b.amount_ex), vehicle:b.vehicle, driver:b.driver, status:b.status, note:b.note }; }
+function dbInvoice(i) { return { id:i.id, charter:i.charter, week:i.week, routes_count:i.routes, expected_ex:i.expectedEx, invoice_ex:i.invoiceEx, status:i.status, submitted:i.submitted, note:i.note }; }
+function appInvoice(i) { return { id:i.id, charter:i.charter, week:i.week, routes:i.routes_count, expectedEx:Number(i.expected_ex), invoiceEx:Number(i.invoice_ex), status:i.status, submitted:i.submitted, note:i.note }; }
+function dbDispute(d) { return { id:d.id, route_id:d.routeId, charter:d.charter, reason:d.reason, amount_ex:d.amountEx, status:d.status, priority:d.priority, note:d.note }; }
+function appDispute(d) { return { id:d.id, routeId:d.route_id, charter:d.charter, reason:d.reason, amountEx:Number(d.amount_ex), status:d.status, priority:d.priority, note:d.note }; }
+function dbCharter(c) { return { company:c.company, contact:c.contact, city:c.city, status:c.status, documents:c.documents, rating:c.rating, zones:c.zones, vehicles_count:c.vehicles, weekly_value:c.weeklyValue }; }
+function appCharter(c) { return { company:c.company, contact:c.contact, city:c.city, status:c.status, documents:c.documents, rating:Number(c.rating), zones:c.zones, vehicles:c.vehicles_count, weeklyValue:Number(c.weekly_value) }; }
+function dbVehicle(v) { return { id:v.id, charter:v.charter, type:v.type, plate:v.plate, capacity_kg:v.capacityKg, laadruimte:v.laadruimte, laadklep:v.laadklep, status:v.status }; }
+function appVehicle(v) { return { id:v.id, charter:v.charter, type:v.type, plate:v.plate, capacityKg:v.capacity_kg, laadruimte:v.laadruimte, laadklep:v.laadklep, status:v.status }; }
 
-function counts() {
-  return {
-    approvals: state.routeRequests.filter(x => x.status === "to approve").length,
-    bids: state.bids.filter(x => ["pending", "recommended"].includes(x.status)).length,
-    invoices: state.invoices.filter(x => ["pending", "review"].includes(x.status)).length,
-    disputes: state.disputes.filter(x => ["to handle", "open"].includes(x.status)).length,
-    openRoutes: state.routes.filter(x => x.status === "open").length,
-    assigned: state.routes.filter(x => x.status === "assigned").length
-  };
+async function loadFromSupabase() {
+  const client = supa();
+  if (!client) return false;
+  try {
+    const [charters, vehicles, routes, requests, bids, invoices, disputes] = await Promise.all([
+      client.from("portal_charters").select("*").order("company"),
+      client.from("portal_vehicles").select("*").order("id"),
+      client.from("portal_routes").select("*").order("id"),
+      client.from("portal_route_requests").select("*").order("id"),
+      client.from("portal_bids").select("*").order("id"),
+      client.from("portal_invoices").select("*").order("id"),
+      client.from("portal_disputes").select("*").order("id")
+    ]);
+    if ([charters, vehicles, routes, requests, bids, invoices, disputes].some(x => x.error)) throw new Error("Supabase query failed");
+    state.charters = charters.data.map(appCharter);
+    state.vehicles = vehicles.data.map(appVehicle);
+    state.routes = routes.data.map(appRoute);
+    state.routeRequests = requests.data.map(appRequest);
+    state.bids = bids.data.map(appBid);
+    state.invoices = invoices.data.map(appInvoice);
+    state.disputes = disputes.data.map(appDispute);
+    state.source = "supabase";
+    saveLocal();
+    return true;
+  } catch (err) {
+    console.warn(err);
+    state.source = "local";
+    return false;
+  }
 }
+async function upsert(table, row) { const client = supa(); if (!client) return false; const { error } = await client.from(table).upsert(row); if (error) { console.warn(error); return false; } return true; }
+async function updateDb(table, values, match) { const client = supa(); if (!client) return false; const { error } = await client.from(table).update(values).match(match); if (error) { console.warn(error); return false; } return true; }
+function saveLocal() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+function toast(text) { const el = document.createElement("div"); el.className = "toast"; el.textContent = text; document.body.appendChild(el); setTimeout(() => el.remove(), 2600); }
+function go(view) { state.view = view; saveLocal(); render(); }
+function enter(role) { state.role = role; state.view = "login"; saveLocal(); render(); }
+function finishLogin(role) { state.role = role; state.view = "dashboard"; saveLocal(); render(); }
+function currentCharter() { return state.charter || state.charters[0]?.company || "LuxeLine Transport"; }
 
-function hero(title, text, actions = "") {
-  return `<section class="hero"><div class="kicker" style="margin-bottom:14px">Eerste testversie · geen echte database</div><h1>${title}</h1><p>${text}</p>${actions ? `<div class="hero-actions">${actions}</div>` : ""}</section>`;
-}
-
-function table(headers, rows) {
-  if (!rows.length) return `<div class="empty">Geen records gevonden.</div>`;
-  return `<div class="table-wrap"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
-}
-
+function counts() { return { approvals: state.routeRequests.filter(x => x.status === "to approve").length, bids: state.bids.filter(x => ["pending", "recommended"].includes(x.status)).length, invoices: state.invoices.filter(x => ["pending", "review"].includes(x.status)).length, disputes: state.disputes.filter(x => ["to handle", "open"].includes(x.status)).length, openRoutes: state.routes.filter(x => x.status === "open").length }; }
+function hero(title, text, actions = "") { return `<section class="hero"><div class="kicker" style="margin-bottom:14px">${state.source === "supabase" ? "Supabase connected" : "First test mode"}</div><h1>${title}</h1><p>${text}</p>${actions ? `<div class="hero-actions">${actions}</div>` : ""}</section>`; }
+function table(headers, rows) { if (!rows.length) return `<div class="empty">Geen records gevonden.</div>`; return `<div class="table-wrap"><table><thead><tr>${headers.map(h => `<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
 function statusPill(status) { return `<span class="status ${cls(status)}">${status}</span>`; }
 function pill(text, color = "blue") { return `<span class="pill ${color}">${text}</span>`; }
 function button(label, view, color = "primary") { return `<button class="btn ${color}" data-view="${view}">${label}</button>`; }
+function metric(label, value, trend, klass) { return `<div class="card metric ${klass}"><div><div class="metric-label">${label}</div><div class="metric-value">${value}</div></div><span class="metric-trend">${trend}</span></div>`; }
+function steps(items) { return `<div class="timeline">${items.map((x, i) => `<div class="step"><div class="step-num">${i + 1}</div><div><strong>${x}</strong><span>Gebruik dit als eerste testscenario met Stan of een charter.</span></div></div>`).join("")}</div>`; }
+
+function landing() {
+  return `<main class="landing-shell">
+    <nav class="landing-nav"><div class="brand-row"><div class="logo">CG</div><div><div class="brand-title">Cargro Charterportaal</div><div class="brand-sub">Route marketplace · charter operations</div></div></div><div class="landing-links"><a href="#features">Over het portaal</a><a href="#contact">Contact</a><button class="btn ghost" data-act="openLogin" data-role="office">Inloggen</button></div></nav>
+    <section class="landing-hero"><div class="landing-copy"><span class="kicker">First testing platform</span><h1>Slim charterportaal voor routes, aanvragen en facturen.</h1><p>Een professionele ingang voor Cargro Office en charters: routes plaatsen, aanvragen goedkeuren, hogere aanbiedingen beheren, facturen controleren en disputes oplossen.</p><div class="hero-actions"><button class="btn primary" data-act="openLogin" data-role="office">Inloggen als Office</button><button class="btn orange" data-act="openLogin" data-role="charter">Inloggen als Charter</button></div><div class="landing-trust"><span>✓ Verwachte betaling excl./incl. btw</span><span>✓ Route approval flow</span><span>✓ Supabase-ready</span></div></div><div class="landing-panel"><div class="card dark"><div class="card-title">Live routeboard</div><div class="price-strip"><div class="price-cell"><strong>${counts().openRoutes}</strong><span>open routes</span></div><div class="price-cell"><strong>${counts().approvals}</strong><span>approvals</span></div><div class="price-cell"><strong>${counts().disputes}</strong><span>disputes</span></div><div class="price-cell"><strong>${state.source}</strong><span>data source</span></div></div></div><div class="route-card"><div class="route-title">MX-2026-0629-003 · Noord zware stops</div><div class="route-info">${pill("Bakwagen laadklep", "purple")}${pill("14 stops", "green")}${pill("€746 excl.", "blue")}</div><p class="muted">Marketplace route met voertuigvereisten, betaling en approval flow.</p></div></div></section>
+    <section id="features" class="landing-section"><div class="section-head"><div><h2>Gebouwd voor echte charter samenwerking</h2><p>Niet zomaar een dashboard, maar een duidelijke portal-structuur voor planning, charters en finance.</p></div></div><div class="grid three"><div class="card soft-blue"><div class="card-title">Voor Office</div><p>Routes uploaden, aanvragen goedkeuren, biedingen beoordelen, marges bekijken en disputes behandelen.</p></div><div class="card soft-green"><div class="card-title">Voor Charters</div><p>Beschikbare routes bekijken, route aanvragen, hoger aanbod doen, factuur indienen en eigen routes volgen.</p></div><div class="card soft-orange"><div class="card-title">Voor Finance</div><p>Vaste verwachte betaling, eigen factuurbedrag, excl./incl. btw en verschilcontrole per route.</p></div></div></section>
+    <section id="contact" class="landing-section"><div class="card soft-blue"><div class="card-title">Eerste test</div><p>Gebruik Office login voor planning. Gebruik Charter login voor het charter-perspectief. Echte accounts komen later via Supabase Auth.</p></div></section>
+  </main>`;
+}
+
+function login() {
+  const role = state.role || "charter";
+  const isOffice = role === "office";
+  return `<main class="landing-shell login-shell"><nav class="landing-nav"><div class="brand-row"><div class="logo">CG</div><div><div class="brand-title">Cargro Charterportaal</div><div class="brand-sub">${isOffice ? "Office login" : "Charter login"}</div></div></div><button class="btn ghost" data-act="home">Terug</button></nav><section class="login-card-wrap"><form class="card login-card" id="loginForm"><div class="card-title">${isOffice ? "Inloggen als Office" : "Inloggen als Charter"}</div><p class="muted">Eerste testlogin. Later wordt dit echte Supabase Auth met rollen en rechten.</p>${!isOffice ? `<div class="field"><label>Test charter</label><select id="loginCharter">${state.charters.map(c => `<option ${c.company === currentCharter() ? "selected" : ""}>${c.company}</option>`).join("")}</select></div>` : ""}<div class="field"><label>Email</label><input class="input" value="${isOffice ? "planning@cargro.nl" : "charter@example.com"}"></div><div class="field"><label>Wachtwoord</label><input class="input" type="password" value="demo123"></div><button class="btn ${isOffice ? "primary" : "orange"} full">Ga naar ${isOffice ? "Office" : "Charter"} portal</button></form></section></main>`;
+}
 
 function nav() {
   const c = counts();
-  const office = [
-    ["dashboard", "🏠", "Command center"],
-    ["upload", "⬆️", "Route upload"],
-    ["market", "🛣️", "Route marketplace"],
-    ["approval", "✅", "Routes to be approved", c.approvals],
-    ["bids", "🤝", "Bid approval", c.bids],
-    ["invoices", "🧾", "Invoices / payables", c.invoices],
-    ["disputes", "⚠️", "Disputes to handle", c.disputes],
-    ["charters", "🚚", "Charters & voertuigen"],
-    ["testing", "🧪", "Test checklist"]
-  ];
-  const charter = [
-    ["dashboard", "🏠", "Mijn dashboard"],
-    ["market", "🛣️", "Beschikbare routes"],
-    ["requests", "📨", "Mijn aanvragen"],
-    ["assigned", "📦", "Mijn routes"],
-    ["invoices", "🧾", "Factuur indienen"],
-    ["disputes", "⚠️", "Dispute aanmaken", c.disputes],
-    ["charters", "🚚", "Mijn voertuigen"],
-    ["testing", "🧪", "Test checklist"]
-  ];
+  const office = [["dashboard","🏠","Command center"],["upload","⬆️","Route upload"],["market","🛣️","Route marketplace"],["approval","✅","Routes to be approved",c.approvals],["bids","🤝","Bid approval",c.bids],["invoices","🧾","Invoices / payables",c.invoices],["disputes","⚠️","Disputes to handle",c.disputes],["charters","🚚","Charters & voertuigen"],["testing","🧪","Test checklist"]];
+  const charter = [["dashboard","🏠","Mijn dashboard"],["market","🛣️","Beschikbare routes"],["requests","📨","Mijn aanvragen"],["assigned","📦","Mijn routes"],["invoices","🧾","Factuur indienen"],["disputes","⚠️","Dispute aanmaken",c.disputes],["charters","🚚","Mijn voertuigen"],["testing","🧪","Test checklist"]];
   const items = state.role === "office" ? office : charter;
-  return `<aside class="sidebar">
-    <div class="brand-card">
-      <div class="brand-row"><div class="logo">CG</div><div><div class="brand-title">Cargro Charterportaal</div><div class="brand-sub">First testing · routes · bids · invoices</div></div></div>
-      <p>Professionele testomgeving voor planning en charters. Data wordt nu lokaal opgeslagen in de browser; later Supabase.</p>
-    </div>
-    <div class="role-switch"><button data-role="office" class="${state.role === "office" ? "active" : ""}">Office</button><button data-role="charter" class="${state.role === "charter" ? "active" : ""}">Charter</button></div>
-    ${state.role === "charter" ? `<div class="field" style="margin-bottom:14px"><label>Test charter</label><select id="charterSelect">${state.charters.map(c => `<option ${c.company === currentCharter() ? "selected" : ""}>${c.company}</option>`).join("")}</select></div>` : ""}
-    <div class="nav-group-title">Navigatie</div>
-    ${items.map(i => `<button class="nav-btn ${state.view === i[0] ? "active" : ""}" data-view="${i[0]}"><span class="nav-left"><span class="nav-icon">${i[1]}</span>${i[2]}</span>${i[3] ? `<span class="badge-count">${i[3]}</span>` : ""}</button>`).join("")}
-    <div class="card soft-blue" style="margin-top:18px;padding:16px"><div class="card-title" style="font-size:15px">Test login</div><p style="margin:0;font-size:13px">Office knop = interne planning. Charter knop = beperkte charter-view.</p></div>
-  </aside>`;
+  return `<aside class="sidebar"><div class="brand-card"><div class="brand-row"><div class="logo">CG</div><div><div class="brand-title">Cargro Charterportaal</div><div class="brand-sub">${state.source === "supabase" ? "Supabase live data" : "Local first-test data"}</div></div></div><p>Professionele testomgeving voor planning en charters. Front screen → login → juiste portal.</p></div><button class="btn ghost full" data-act="logout" style="margin-top:14px">Terug naar voorpagina</button>${state.role === "charter" ? `<div class="field" style="margin:14px 0"><label>Test charter</label><select id="charterSelect">${state.charters.map(c => `<option ${c.company === currentCharter() ? "selected" : ""}>${c.company}</option>`).join("")}</select></div>` : ""}<div class="nav-group-title">Navigatie</div>${items.map(i => `<button class="nav-btn ${state.view === i[0] ? "active" : ""}" data-view="${i[0]}"><span class="nav-left"><span class="nav-icon">${i[1]}</span>${i[2]}</span>${i[3] ? `<span class="badge-count">${i[3]}</span>` : ""}</button>`).join("")}</aside>`;
 }
-
-function routeVisible(route) {
-  if (state.role === "office") return true;
-  return route.status === "open" || route.assignedTo === currentCharter();
-}
-
-function dashboard() {
-  const visibleRoutes = state.routes.filter(routeVisible);
-  const payout = visibleRoutes.reduce((a, r) => a + Number(r.expectedEx || 0), 0);
-  const margin = state.routes.reduce((a, r) => a + marginOf(r), 0);
-  const c = counts();
-  const title = state.role === "office" ? "Command center voor routecontrole." : "Jouw charter dashboard.";
-  const text = state.role === "office" ? "Plaats routes, keur aanvragen en biedingen goed, controleer facturen en behandel disputes zonder losse WhatsApp/Excel chaos." : "Bekijk open routes, jouw toegewezen routes, verwachte betaling, facturen en disputes in één omgeving.";
-  return hero(title, text, `${button("Route upload", "upload", "primary")} ${button("Disputes", "disputes", "orange")}`) +
-  `<section class="grid four">
-    ${metric("Routes", visibleRoutes.length, "zichtbaar", "soft-blue")}
-    ${metric("Open marketplace", c.openRoutes, "aanvragen mogelijk", "soft-orange")}
-    ${metric(state.role === "office" ? "Payout volume" : "Mijn payout", euro(payout), "excl. btw", "soft-green")}
-    ${metric(state.role === "office" ? "Bruto marge" : "Disputes", state.role === "office" ? euro(margin) : c.disputes, state.role === "office" ? "intern" : "open", "")}
-  </section>
-  <div class="grid two" style="margin-top:18px">
-    <div class="card"><div class="card-title">Weekoverzicht</div><div class="chart-bars">${[["Ma",72,""],["Di",88,"orange"],["Wo",62,""],["Do",92,"green"],["Vr",78,""],["Za",44,"orange"]].map(b => `<div class="bar ${b[2]}" style="height:${b[1]}%"><span>${b[1]}</span><small>${b[0]}</small></div>`).join("")}</div></div>
-    <div class="card soft-blue"><div class="card-title">Wat moet getest worden?</div>${steps(["Office ziet marge, charter niet", "Route aanvragen komt onder approval", "Hoger aanbod blijft gekoppeld aan route", "Factuurbedrag kan afwijken van verwachte betaling", "Dispute wordt aparte behandelqueue"])}</div>
-  </div>
-  <div class="section-head"><div><h2>Laatste routes</h2><p>Professionele routekaart met payout excl./incl. btw, voertuigvereisten en status.</p></div></div>${routesTable(visibleRoutes.slice(0, 6))}`;
-}
-
-function metric(label, value, trend, klass) {
-  return `<div class="card metric ${klass}"><div><div class="metric-label">${label}</div><div class="metric-value">${value}</div></div><span class="metric-trend">${trend}</span></div>`;
-}
-
-function steps(items) {
-  return `<div class="timeline">${items.map((x, i) => `<div class="step"><div class="step-num">${i + 1}</div><div><strong>${x}</strong><span>Gebruik dit als eerste testscenario met Stan of een charter.</span></div></div>`).join("")}</div>`;
-}
-
-function routeCard(route) {
-  return `<article class="route-card" data-zone="${route.zone}" data-vehicle="${route.vehicle}">
-    <div class="route-top"><div><div class="route-title">${route.title}</div><div class="route-meta">${route.id} · ${route.source} · laden ${route.load} · ${route.from} → ${route.firstStop} → ${route.lastStop}</div></div>${statusPill(route.status)}</div>
-    <div class="route-info">${pill(`📍 ${route.zone}`, "blue")}${pill(`🚚 ${route.vehicle}`, "purple")}${pill(`📦 ${route.stops} stops`, "green")}${pill(`⚖️ ${number(route.kg)} kg`, "orange")}${pill(`📐 ${route.laadruimte}`, "gray")}${pill(`Laadklep: ${route.laadklep}`, "dark")}</div>
-    <p class="muted">${route.notes}</p>
-    <div class="price-strip"><div class="price-cell"><strong>${number(route.km)}</strong><span>KM</span></div><div class="price-cell"><strong>${number(route.hours)}</strong><span>uren</span></div><div class="price-cell"><strong>${euro(route.expectedEx)}</strong><span>verwacht excl. BTW</span></div><div class="price-cell"><strong>${euro(vat(route.expectedEx))}</strong><span>incl. BTW</span></div></div>
-    ${state.role === "office" ? `<div class="price-strip"><div class="price-cell"><strong>${euro(route.customerRevenue)}</strong><span>klant omzet</span></div><div class="price-cell"><strong>${euro(marginOf(route))}</strong><span>Cargro marge</span></div><div class="price-cell"><strong>${route.assignedTo || "—"}</strong><span>charter</span></div><div class="price-cell"><strong>${route.invoiceStatus}</strong><span>factuur</span></div></div>` : ""}
-    <div class="hero-actions">
-      ${state.role === "charter" && route.status === "open" ? `<button class="btn primary small" data-act="requestRoute" data-id="${route.id}">Route aanvragen</button><button class="btn orange small" data-act="higherOffer" data-id="${route.id}">Hoger aanbod doen</button>` : ""}
-      ${state.role === "office" && route.requestStatus === "to approve" ? `<button class="btn green small" data-act="approveRoute" data-id="${route.id}">Approve route</button>` : ""}
-      <button class="btn dark small" data-act="createDispute" data-id="${route.id}">Dispute</button>
-    </div>
-  </article>`;
-}
-
-function routesTable(routes) {
-  return table(["Route", "Zone", "Voertuig", "Stops", "KM", "Payout excl.", "Incl. BTW", "Status", state.role === "office" ? "Marge" : "Charter"], routes.map(r => [
-    `<strong>${r.id}</strong><br><span class="muted">${r.title}</span>`, r.zone, r.vehicle, r.stops, r.km, euro(r.expectedEx), euro(vat(r.expectedEx)), statusPill(r.status), state.role === "office" ? euro(marginOf(r)) : (r.assignedTo || "Marketplace")
-  ]));
-}
-
-function upload() {
-  return hero("Route upload voor eerste test.", "Gebruik bulk upload als MendriX/Excel-simulatie of maak één route handmatig. Nieuwe handmatige routes komen eerst in 'Routes to be approved'.", `${button("Simuleer bulk import", "upload", "primary")} ${button("Approvals", "approval", "orange")}`) +
-  `<div class="grid two">
-    <div class="card soft-blue"><div class="card-title">Bulk upload <span class="pill blue">MendriX / Excel / CSV</span></div><p>Voor de test tonen we alleen de flow. Later wordt dit gekoppeld aan SheetJS + Supabase.</p><input class="input" type="file" accept=".csv,.xlsx,.xls"><button class="btn primary full" style="margin-top:12px" data-act="bulkImport">Demo routes importeren</button></div>
-    <form class="card soft-green" id="routeForm"><div class="card-title">Manual single route <span class="pill green">1 by 1</span></div><p>Voor spoedroutes, correcties of losse charter-aanvragen.</p><div class="form-grid">
-      <input class="input" name="title" value="Nieuwe route aanvraag"><select name="zone"><option>Oost</option><option>Midden</option><option>Zuid</option><option>Noord</option><option>West</option><option>Randstad</option></select><input class="input" name="load" value="07:00"><select name="vehicle"><option>L3</option><option>L4</option><option>Bakwagen</option><option>Bakwagen laadklep</option></select><input class="input" name="stops" type="number" value="14"><input class="input" name="km" type="number" value="280"><input class="input" name="hours" type="number" step=".1" value="8.2"><input class="input" name="kg" type="number" value="520"><input class="input" name="expectedEx" type="number" value="525"><input class="input" name="customerRevenue" type="number" value="650">
-    </div><button class="btn green full" style="margin-top:14px">Route naar approval sturen</button></form>
-  </div>`;
-}
-
-function market() {
-  const routes = state.routes.filter(routeVisible).filter(r => ["open", "assigned", "pending"].includes(r.status));
-  return hero("Route marketplace.", "Charters kunnen routes aanvragen of alleen binnen dezelfde route een hoger aanbod doen. Geen losse 'Mijn hogere biedingen' pagina meer.", `${button("Bid approval", "bids", "primary")} ${button("Disputes to handle", "disputes", "orange")}`) +
-  `<div class="filters"><select id="zoneFilter"><option value="all">Alle zones</option><option>Oost</option><option>Midden</option><option>Zuid</option><option>Noord</option><option>West</option><option>Randstad</option></select><select id="vehicleFilter"><option value="all">Alle voertuigen</option><option>L3</option><option>L4</option><option>Bakwagen</option><option>Bakwagen laadklep</option></select>${pill("Disputes staan apart, niet als filter", "orange")}</div><div class="grid two" id="routeGrid">${routes.map(routeCard).join("")}</div>`;
-}
-
-function approval() {
-  const pending = state.routeRequests.filter(x => x.status === "to approve");
-  return hero("Routes to be approved.", "Nieuwe charter-aanvragen en handmatige routes komen eerst hier. Planning beslist wie de route krijgt en tegen welke vaste verwachte betaling.", `${button("Route upload", "upload", "primary")}`) +
-  `<div class="grid two">${pending.length ? pending.map(req => {
-    const route = state.routes.find(r => r.id === req.routeId);
-    return `<div class="card soft-orange"><div class="card-title">${req.type} ${statusPill(req.status)}</div><p><strong>${req.charter}</strong> vraagt ${route?.title || req.routeId} aan.</p><div class="price-strip"><div class="price-cell"><strong>${euro(req.requestedEx)}</strong><span>aangevraagd excl.</span></div><div class="price-cell"><strong>${euro(vat(req.requestedEx))}</strong><span>incl. BTW</span></div><div class="price-cell"><strong>${req.vehicle}</strong><span>voertuig</span></div><div class="price-cell"><strong>${req.driver}</strong><span>chauffeur</span></div></div><p class="muted">${req.note}</p><div class="hero-actions"><button class="btn green" data-act="approveRequest" data-id="${req.id}">Goedkeuren</button><button class="btn red" data-act="rejectRequest" data-id="${req.id}">Afwijzen</button></div></div>`;
-  }).join("") : `<div class="empty">Geen route-aanvragen om goed te keuren.</div>`}</div>`;
-}
-
-function requests() {
-  const mine = state.routeRequests.filter(x => x.charter === currentCharter());
-  return hero("Mijn aanvragen.", "Hier staan jouw route-aanvragen en hogere aanbiedingen. Ze blijven gekoppeld aan de route waar je op reageerde.") + table(["Aanvraag", "Route", "Type", "Voertuig", "Bedrag excl.", "Status", "Notitie"], mine.map(r => [r.id, r.routeId, r.type, r.vehicle, euro(r.requestedEx), statusPill(r.status), r.note]));
-}
-
-function assigned() {
-  const mine = state.routes.filter(r => r.assignedTo === currentCharter());
-  return hero("Mijn routes.", "Alleen toegewezen routes staan hier. De verwachte betaling is vast en niet bewerkbaar voor de charter.") + `<div class="grid two">${mine.length ? mine.map(routeCard).join("") : `<div class="empty">Nog geen toegewezen routes.</div>`}</div>`;
-}
-
-function bids() {
-  return hero("Bid approval.", "Hogere aanbiedingen worden alleen binnen de route goedgekeurd of afgewezen. Planning ziet prijs, voertuig, chauffeur en motivatie.") + table(["Bid", "Route", "Charter", "Bedrag excl.", "Voertuig", "Status", "Actie"], state.bids.map(b => [b.id, b.routeId, b.charter, euro(b.amountEx), b.vehicle, statusPill(b.status), `<button class="btn green small" data-act="approveBid" data-id="${b.id}">Approve</button>`]));
-}
-
-function invoices() {
-  const roleCharter = state.role === "charter";
-  const rows = state.invoices.filter(x => !roleCharter || x.charter === currentCharter());
-  const assignedRoutes = state.routes.filter(r => r.assignedTo === currentCharter());
-  const expected = assignedRoutes.reduce((a, r) => a + r.expectedEx, 0);
-  const form = roleCharter ? `<form class="card soft-green" id="invoiceForm" style="margin-bottom:18px"><div class="card-title">Factuur indienen</div><p>Verwachte betaling is vast per route. Charter mag eigen factuurbedrag invullen; office controleert verschil.</p><div class="form-grid"><input class="input" name="invoice" value="INV-${currentCharter().slice(0,3).toUpperCase()}-20260629"><input class="input" name="amount" type="number" value="${expected.toFixed(2)}"><input class="input" disabled value="Verwacht excl. BTW: ${euro(expected)}"><input class="input" disabled value="Verwacht incl. BTW: ${euro(vat(expected))}"></div><textarea name="note" style="margin-top:12px">Factuur ingediend voor toegewezen routes.</textarea><button class="btn green full" style="margin-top:12px">Factuur versturen</button></form>` : "";
-  return hero(roleCharter ? "Mijn facturen." : "Invoices / payables.", roleCharter ? "Dien je factuur in en vergelijk met de vaste verwachte betaling." : "Controleer verwachte betaling versus factuurbedrag, excl. en incl. btw.") + form + table(["Factuur", "Charter", "Week", "Routes", "Verwacht excl.", "Factuur excl.", "Verschil", "Status"], rows.map(inv => [inv.id, inv.charter, inv.week, inv.routes, euro(inv.expectedEx), euro(inv.invoiceEx), euro(inv.invoiceEx - inv.expectedEx), statusPill(inv.status)]));
-}
-
-function disputes() {
-  const rows = state.disputes.filter(x => state.role === "office" || x.charter === currentCharter());
-  const routeOptions = state.routes.filter(r => state.role === "office" || r.assignedTo === currentCharter());
-  const form = `<form class="card soft-orange" id="disputeForm" style="margin-bottom:18px"><div class="card-title">Nieuwe dispute aanmaken</div><p>Dispute is een behandelqueue, geen filter in marketplace.</p><div class="form-grid"><select name="routeId">${routeOptions.map(r => `<option>${r.id}</option>`).join("")}</select><input class="input" name="reason" value="Wachttijd / gewicht / schade"><input class="input" name="amount" type="number" value="0"><select name="priority"><option>medium</option><option>high</option><option>low</option></select></div><textarea name="note" style="margin-top:12px">Leg kort uit wat er gecorrigeerd moet worden.</textarea><button class="btn orange full" style="margin-top:12px">Dispute versturen</button></form>`;
-  return hero("Disputes to handle.", "Alle route- en factuurdisputes worden hier behandeld, zodat de marketplace schoon blijft.") + form + table(["Dispute", "Route", "Charter", "Reden", "Bedrag", "Prioriteit", "Status", "Notitie"], rows.map(d => [d.id, d.routeId, d.charter, d.reason, euro(d.amountEx), d.priority, statusPill(d.status), d.note]));
-}
-
-function charters() {
-  if (state.role === "charter") {
-    const vehicles = state.vehicles.filter(v => v.charter === currentCharter());
-    return hero("Mijn voertuigen.", "Voertuigmaten zijn belangrijk voor route-matching: beladingsruimte, laadvermogen en laadklep.") + table(["Voertuig", "Type", "Kenteken", "Laadvermogen", "Beladingsruimte", "Laadklep", "Status"], vehicles.map(v => [v.id, v.type, v.plate, `${number(v.capacityKg)} kg`, v.laadruimte, v.laadklep, statusPill(v.status)]));
-  }
-  return hero("Charters & voertuigen.", "Office ziet documenten, status, rating, zones en voertuigcapaciteit. Dit is de basis voor route approval.") + `<div class="section-head"><div><h2>Charters</h2></div></div>` + table(["Charter", "Contact", "Plaats", "Status", "Documenten", "Rating", "Zones", "Weekwaarde"], state.charters.map(c => [c.company, c.contact, c.city, statusPill(c.status), c.documents, c.rating, c.zones, euro(c.weeklyValue)])) + `<div class="section-head"><div><h2>Voertuigen</h2></div></div>` + table(["Voertuig", "Charter", "Type", "Kenteken", "Laadvermogen", "Beladingsruimte", "Laadklep", "Status"], state.vehicles.map(v => [v.id, v.charter, v.type, v.plate, `${number(v.capacityKg)} kg`, v.laadruimte, v.laadklep, statusPill(v.status)]));
-}
-
-function testing() {
-  return hero("Eerste test checklist.", "Gebruik deze versie om met Stan of één charter te testen of de portal-logica klopt vóór Supabase en echte login worden gebouwd.") +
-  `<div class="grid two"><div class="card soft-green"><div class="card-title">Wat werkt nu</div>${steps(["Office/charter view switch", "Marketplace met vaste routeprijs", "Route aanvragen en hoger aanbod", "Approval queue", "Factuurbedrag versus verwachte betaling", "Dispute queue", "Voertuigmaten en beladingsruimte"] )}</div><div class="card soft-orange"><div class="card-title">Nog niet productie-klaar</div>${steps(["Geen echte database, alleen browser localStorage", "Geen echte Supabase login", "Geen file upload opslag", "Geen MendriX API-sync", "Geen automatische e-mails/notificaties"] )}<button class="btn red full" data-act="resetDemo" style="margin-top:14px">Reset testdata</button></div></div>`;
-}
-
-function renderMain() {
-  const views = { dashboard, upload, market, approval, requests, assigned, bids, invoices, disputes, charters, testing };
-  return (views[state.view] || dashboard)();
-}
-
-function render() {
-  app.innerHTML = `<div class="app-shell">${nav()}<main class="main"><div class="topbar"><div class="kicker">${state.role === "office" ? "🔒 Office view" : "🌟 Charter view"}</div><div class="demo-note">Eerste testversie · lokaal opgeslagen · later Supabase</div></div>${renderMain()}</main></div>`;
-  bind();
-}
-
-function bind() {
-  document.querySelectorAll("[data-view]").forEach(el => el.addEventListener("click", () => go(el.dataset.view)));
-  document.querySelectorAll("[data-role]").forEach(el => el.addEventListener("click", () => setRole(el.dataset.role)));
-  const charterSelect = document.getElementById("charterSelect");
-  if (charterSelect) charterSelect.addEventListener("change", e => { state.charter = e.target.value; save(); render(); });
-
-  const zoneFilter = document.getElementById("zoneFilter");
-  const vehicleFilter = document.getElementById("vehicleFilter");
-  if (zoneFilter && vehicleFilter) {
-    const apply = () => {
-      document.querySelectorAll(".route-card").forEach(card => {
-        const z = zoneFilter.value === "all" || card.dataset.zone === zoneFilter.value;
-        const v = vehicleFilter.value === "all" || card.dataset.vehicle === vehicleFilter.value;
-        card.style.display = z && v ? "block" : "none";
-      });
-    };
-    zoneFilter.addEventListener("change", apply);
-    vehicleFilter.addEventListener("change", apply);
-  }
-
-  document.querySelectorAll("[data-act]").forEach(el => el.addEventListener("click", e => handleAction(e, el.dataset.act, el.dataset.id)));
-
-  const routeForm = document.getElementById("routeForm");
-  if (routeForm) routeForm.addEventListener("submit", event => {
-    event.preventDefault();
-    const f = new FormData(routeForm);
-    const id = `MX-2026-TEST-${String(state.routes.length + 1).padStart(3, "0")}`;
-    state.routes.push({ id, title: f.get("title"), date: "2026-06-29", zone: f.get("zone"), from: "Wijchen", firstStop: "Demo eerste stop", lastStop: "Demo laatste stop", load: f.get("load"), vehicle: f.get("vehicle"), laadruimte: f.get("vehicle")?.includes("Bakwagen") ? "420 × 210 × 220 cm" : "370 × 178 × 190 cm", laadklep: f.get("vehicle")?.includes("laadklep") ? "Ja" : "Nee", stops: Number(f.get("stops")), km: Number(f.get("km")), hours: Number(f.get("hours")), kg: Number(f.get("kg")), equipment: "Steekwagen", expectedEx: Number(f.get("expectedEx")), customerRevenue: Number(f.get("customerRevenue")), status: "pending", requestStatus: "to approve", assignedTo: state.role === "charter" ? currentCharter() : "", source: state.role === "charter" ? "Charter request" : "Manual", invoiceStatus: "wacht op approval", dispute: "none", notes: "Handmatig toegevoegd voor test." });
-    state.routeRequests.push({ id: `REQ-${String(state.routeRequests.length + 1).padStart(3, "0")}`, routeId: id, charter: state.role === "charter" ? currentCharter() : "Planning", type: "Manual route", requestedEx: Number(f.get("expectedEx")), vehicle: f.get("vehicle"), driver: "Nog te kiezen", status: "to approve", note: "Aangemaakt via testformulier." });
-    save(); toast("Route toegevoegd aan approval queue."); go("approval");
-  });
-
-  const invoiceForm = document.getElementById("invoiceForm");
-  if (invoiceForm) invoiceForm.addEventListener("submit", event => {
-    event.preventDefault();
-    const f = new FormData(invoiceForm);
-    const assigned = state.routes.filter(r => r.assignedTo === currentCharter());
-    const expected = assigned.reduce((a, r) => a + r.expectedEx, 0);
-    state.invoices.push({ id: String(f.get("invoice")), charter: currentCharter(), week: "2026-W26", routes: assigned.length, expectedEx: expected, invoiceEx: Number(f.get("amount")), status: Number(f.get("amount")) === expected ? "pending" : "review", submitted: "2026-06-29", note: f.get("note") });
-    save(); toast("Factuur verstuurd naar office review."); render();
-  });
-
-  const disputeForm = document.getElementById("disputeForm");
-  if (disputeForm) disputeForm.addEventListener("submit", event => {
-    event.preventDefault();
-    const f = new FormData(disputeForm);
-    state.disputes.push({ id: `DSP-${String(state.disputes.length + 1).padStart(3, "0")}`, routeId: f.get("routeId"), charter: state.role === "charter" ? currentCharter() : "Office", reason: f.get("reason"), amountEx: Number(f.get("amount")), status: "to handle", priority: f.get("priority"), note: f.get("note") });
-    save(); toast("Dispute aangemaakt."); render();
-  });
-}
-
-function handleAction(event, action, id) {
-  event.preventDefault();
-  if (action === "resetDemo") { localStorage.removeItem(STORE_KEY); state = structuredClone(seed); toast("Testdata gereset."); render(); return; }
-  if (action === "bulkImport") {
-    const id = `MX-2026-BULK-${String(state.routes.length + 1).padStart(3, "0")}`;
-    state.routes.push({ ...structuredClone(seed.routes[1]), id, title: "Bulk import testroute", status: "open", requestStatus: "published", assignedTo: "", source: "Excel import" });
-    save(); toast("Bulk import gesimuleerd: 1 route toegevoegd."); go("market"); return;
-  }
-  if (action === "requestRoute" || action === "higherOffer") {
-    const route = state.routes.find(r => r.id === id);
-    const amount = action === "higherOffer" ? route.expectedEx + 25 : route.expectedEx;
-    state.routeRequests.push({ id: `REQ-${String(state.routeRequests.length + 1).padStart(3, "0")}`, routeId: id, charter: currentCharter(), type: action === "higherOffer" ? "Hoger aanbod" : "Route aanvragen", requestedEx: amount, vehicle: route.vehicle, driver: "Test chauffeur", status: "to approve", note: action === "higherOffer" ? "Hoger aanbod binnen route marketplace." : "Route aangevraagd via charter portal." });
-    save(); toast("Aanvraag naar planning gestuurd."); go("requests"); return;
-  }
-  if (action === "approveRequest") {
-    const req = state.routeRequests.find(r => r.id === id);
-    if (!req) return;
-    req.status = "approved";
-    const route = state.routes.find(r => r.id === req.routeId);
-    if (route) { route.status = "assigned"; route.requestStatus = "approved"; route.assignedTo = req.charter; route.expectedEx = req.requestedEx; route.invoiceStatus = "te betalen"; }
-    save(); toast("Route-aanvraag goedgekeurd en toegewezen."); render(); return;
-  }
-  if (action === "rejectRequest") {
-    const req = state.routeRequests.find(r => r.id === id); if (req) req.status = "rejected";
-    save(); toast("Aanvraag afgewezen."); render(); return;
-  }
-  if (action === "approveRoute") {
-    const route = state.routes.find(r => r.id === id); if (route) { route.status = "assigned"; route.requestStatus = "approved"; route.assignedTo = route.assignedTo || "Planning assigned"; route.invoiceStatus = "te betalen"; }
-    save(); toast("Route goedgekeurd."); render(); return;
-  }
-  if (action === "approveBid") {
-    const bid = state.bids.find(b => b.id === id); if (!bid) return;
-    bid.status = "approved";
-    const route = state.routes.find(r => r.id === bid.routeId); if (route) { route.status = "assigned"; route.assignedTo = bid.charter; route.expectedEx = bid.amountEx; route.requestStatus = "approved"; }
-    save(); toast("Bid goedgekeurd en route toegewezen."); render(); return;
-  }
-  if (action === "createDispute") {
-    state.view = "disputes"; save(); render(); toast("Kies route en verstuur dispute."); return;
-  }
-}
-
-render();
+function routeVisible(route) { if (state.role === "office") return true; return route.status === "open" || route.assignedTo === currentCharter(); }
+function dashboard() { const visibleRoutes = state.routes.filter(routeVisible); const payout = visibleRoutes.reduce((a, r) => a + Number(r.expectedEx || 0), 0); const margin = state.routes.reduce((a, r) => a + marginOf(r), 0); const c = counts(); return hero(state.role === "office" ? "Command center voor routecontrole." : "Jouw charter dashboard.", state.role === "office" ? "Plaats routes, keur aanvragen en biedingen goed, controleer facturen en behandel disputes zonder losse WhatsApp/Excel chaos." : "Bekijk open routes, jouw toegewezen routes, verwachte betaling, facturen en disputes in één omgeving.", `${button("Route upload", "upload", "primary")} ${button("Disputes", "disputes", "orange")}`) + `<section class="grid four">${metric("Routes", visibleRoutes.length, "zichtbaar", "soft-blue")}${metric("Open marketplace", c.openRoutes, "aanvragen mogelijk", "soft-orange")}${metric(state.role === "office" ? "Payout volume" : "Mijn payout", euro(payout), "excl. btw", "soft-green")}${metric(state.role === "office" ? "Bruto marge" : "Disputes", state.role === "office" ? euro(margin) : c.disputes, state.role === "office" ? "intern" : "open", "")}</section><div class="grid two" style="margin-top:18px"><div class="card"><div class="card-title">Weekoverzicht</div><div class="chart-bars">${[["Ma",72,""],["Di",88,"orange"],["Wo",62,""],["Do",92,"green"],["Vr",78,""],["Za",44,"orange"]].map(b => `<div class="bar ${b[2]}" style="height:${b[1]}%"><span>${b[1]}</span><small>${b[0]}</small></div>`).join("")}</div></div><div class="card soft-blue"><div class="card-title">Wat moet getest worden?</div>${steps(["Office ziet marge, charter niet", "Route aanvragen komt onder approval", "Hoger aanbod blijft gekoppeld aan route", "Factuurbedrag kan afwijken van verwachte betaling", "Dispute wordt aparte behandelqueue"])}</div></div><div class="section-head"><div><h2>Laatste routes</h2><p>Professionele routekaart met payout excl./incl. btw, voertuigvereisten en status.</p></div></div>${routesTable(visibleRoutes.slice(0, 6))}`; }
+function routeCard(route) { return `<article class="route-card" data-zone="${route.zone}" data-vehicle="${route.vehicle}"><div class="route-top"><div><div class="route-title">${route.title}</div><div class="route-meta">${route.id} · ${route.source} · laden ${route.load} · ${route.from} → ${route.firstStop} → ${route.lastStop}</div></div>${statusPill(route.status)}</div><div class="route-info">${pill(`📍 ${route.zone}`, "blue")}${pill(`🚚 ${route.vehicle}`, "purple")}${pill(`📦 ${route.stops} stops`, "green")}${pill(`⚖️ ${number(route.kg)} kg`, "orange")}${pill(`📐 ${route.laadruimte}`, "gray")}${pill(`Laadklep: ${route.laadklep}`, "dark")}</div><p class="muted">${route.notes}</p><div class="price-strip"><div class="price-cell"><strong>${number(route.km)}</strong><span>KM</span></div><div class="price-cell"><strong>${number(route.hours)}</strong><span>uren</span></div><div class="price-cell"><strong>${euro(route.expectedEx)}</strong><span>verwacht excl. BTW</span></div><div class="price-cell"><strong>${euro(vat(route.expectedEx))}</strong><span>incl. BTW</span></div></div>${state.role === "office" ? `<div class="price-strip"><div class="price-cell"><strong>${euro(route.customerRevenue)}</strong><span>klant omzet</span></div><div class="price-cell"><strong>${euro(marginOf(route))}</strong><span>Cargro marge</span></div><div class="price-cell"><strong>${route.assignedTo || "—"}</strong><span>charter</span></div><div class="price-cell"><strong>${route.invoiceStatus}</strong><span>factuur</span></div></div>` : ""}<div class="hero-actions">${state.role === "charter" && route.status === "open" ? `<button class="btn primary small" data-act="requestRoute" data-id="${route.id}">Route aanvragen</button><button class="btn orange small" data-act="higherOffer" data-id="${route.id}">Hoger aanbod doen</button>` : ""}${state.role === "office" && route.requestStatus === "to approve" ? `<button class="btn green small" data-act="approveRoute" data-id="${route.id}">Approve route</button>` : ""}<button class="btn dark small" data-act="createDispute" data-id="${route.id}">Dispute</button></div></article>`; }
+function routesTable(routes) { return table(["Route", "Zone", "Voertuig", "Stops", "KM", "Payout excl.", "Incl. BTW", "Status", state.role === "office" ? "Marge" : "Charter"], routes.map(r => [`<strong>${r.id}</strong><br><span class="muted">${r.title}</span>`, r.zone, r.vehicle, r.stops, r.km, euro(r.expectedEx), euro(vat(r.expectedEx)), statusPill(r.status), state.role === "office" ? euro(marginOf(r)) : (r.assignedTo || "Marketplace")])); }
+function upload() { return hero("Route upload voor eerste test.", "Gebruik bulk upload als MendriX/Excel-simulatie of maak één route handmatig. Nieuwe handmatige routes komen eerst in 'Routes to be approved'.", `${button("Simuleer bulk import", "upload", "primary")} ${button("Approvals", "approval", "orange")}`) + `<div class="grid two"><div class="card soft-blue"><div class="card-title">Bulk upload <span class="pill blue">MendriX / Excel / CSV</span></div><p>Voor de test tonen we de flow. Later wordt dit gekoppeld aan SheetJS en Supabase Storage.</p><input class="input" type="file" accept=".csv,.xlsx,.xls"><button class="btn primary full" style="margin-top:12px" data-act="bulkImport">Demo routes importeren</button></div><form class="card soft-green" id="routeForm"><div class="card-title">Manual single route <span class="pill green">1 by 1</span></div><p>Voor spoedroutes, correcties of losse charter-aanvragen.</p><div class="form-grid"><input class="input" name="title" value="Nieuwe route aanvraag"><select name="zone"><option>Oost</option><option>Midden</option><option>Zuid</option><option>Noord</option><option>West</option><option>Randstad</option></select><input class="input" name="load" value="07:00"><select name="vehicle"><option>L3</option><option>L4</option><option>Bakwagen</option><option>Bakwagen laadklep</option></select><input class="input" name="stops" type="number" value="14"><input class="input" name="km" type="number" value="280"><input class="input" name="hours" type="number" step=".1" value="8.2"><input class="input" name="kg" type="number" value="520"><input class="input" name="expectedEx" type="number" value="525"><input class="input" name="customerRevenue" type="number" value="650"></div><button class="btn green full" style="margin-top:14px">Route naar approval sturen</button></form></div>`; }
+function market() { const routes = state.routes.filter(routeVisible).filter(r => ["open", "assigned", "pending"].includes(r.status)); return hero("Route marketplace.", "Charters kunnen routes aanvragen of alleen binnen dezelfde route een hoger aanbod doen. Geen losse 'Mijn hogere biedingen' pagina meer.", `${button("Bid approval", "bids", "primary")} ${button("Disputes to handle", "disputes", "orange")}`) + `<div class="filters"><select id="zoneFilter"><option value="all">Alle zones</option><option>Oost</option><option>Midden</option><option>Zuid</option><option>Noord</option><option>West</option><option>Randstad</option></select><select id="vehicleFilter"><option value="all">Alle voertuigen</option><option>L3</option><option>L4</option><option>Bakwagen</option><option>Bakwagen laadklep</option></select>${pill("Disputes staan apart, niet als filter", "orange")}</div><div class="grid two" id="routeGrid">${routes.map(routeCard).join("")}</div>`; }
+function approval() { const pending = state.routeRequests.filter(x => x.status === "to approve"); return hero("Routes to be approved.", "Nieuwe charter-aanvragen en handmatige routes komen eerst hier. Planning beslist wie de route krijgt en tegen welke vaste verwachte betaling.", `${button("Route upload", "upload", "primary")}`) + `<div class="grid two">${pending.length ? pending.map(req => { const route = state.routes.find(r => r.id === req.routeId); return `<div class="card soft-orange"><div class="card-title">${req.type} ${statusPill(req.status)}</div><p><strong>${req.charter}</strong> vraagt ${route?.title || req.routeId} aan.</p><div class="price-strip"><div class="price-cell"><strong>${euro(req.requestedEx)}</strong><span>aangevraagd excl.</span></div><div class="price-cell"><strong>${euro(vat(req.requestedEx))}</strong><span>incl. BTW</span></div><div class="price-cell"><strong>${req.vehicle}</strong><span>voertuig</span></div><div class="price-cell"><strong>${req.driver}</strong><span>chauffeur</span></div></div><p class="muted">${req.note}</p><div class="hero-actions"><button class="btn green" data-act="approveRequest" data-id="${req.id}">Goedkeuren</button><button class="btn red" data-act="rejectRequest" data-id="${req.id}">Afwijzen</button></div></div>`; }).join("") : `<div class="empty">Geen route-aanvragen om goed te keuren.</div>`}</div>`; }
+function requests() { const mine = state.routeRequests.filter(x => x.charter === currentCharter()); return hero("Mijn aanvragen.", "Hier staan jouw route-aanvragen en hogere aanbiedingen. Ze blijven gekoppeld aan de route waar je op reageerde.") + table(["Aanvraag", "Route", "Type", "Voertuig", "Bedrag excl.", "Status", "Notitie"], mine.map(r => [r.id, r.routeId, r.type, r.vehicle, euro(r.requestedEx), statusPill(r.status), r.note])); }
+function assigned() { const mine = state.routes.filter(r => r.assignedTo === currentCharter()); return hero("Mijn routes.", "Alleen toegewezen routes staan hier. De verwachte betaling is vast en niet bewerkbaar voor de charter.") + `<div class="grid two">${mine.length ? mine.map(routeCard).join("") : `<div class="empty">Nog geen toegewezen routes.</div>`}</div>`; }
+function bids() { return hero("Bid approval.", "Hogere aanbiedingen worden alleen binnen de route goedgekeurd of afgewezen. Planning ziet prijs, voertuig, chauffeur en motivatie.") + table(["Bid", "Route", "Charter", "Bedrag excl.", "Voertuig", "Status", "Actie"], state.bids.map(b => [b.id, b.routeId, b.charter, euro(b.amountEx), b.vehicle, statusPill(b.status), `<button class="btn green small" data-act="approveBid" data-id="${b.id}">Approve</button>`])); }
+function invoices() { const roleCharter = state.role === "charter"; const rows = state.invoices.filter(x => !roleCharter || x.charter === currentCharter()); const assignedRoutes = state.routes.filter(r => r.assignedTo === currentCharter()); const expected = assignedRoutes.reduce((a, r) => a + r.expectedEx, 0); const form = roleCharter ? `<form class="card soft-green" id="invoiceForm" style="margin-bottom:18px"><div class="card-title">Factuur indienen</div><p>Verwachte betaling is vast per route. Charter mag eigen factuurbedrag invullen; office controleert verschil.</p><div class="form-grid"><input class="input" name="invoice" value="INV-${currentCharter().slice(0,3).toUpperCase()}-20260629"><input class="input" name="amount" type="number" value="${expected.toFixed(2)}"><input class="input" disabled value="Verwacht excl. BTW: ${euro(expected)}"><input class="input" disabled value="Verwacht incl. BTW: ${euro(vat(expected))}"></div><textarea name="note" style="margin-top:12px">Factuur ingediend voor toegewezen routes.</textarea><button class="btn green full" style="margin-top:12px">Factuur versturen</button></form>` : ""; return hero(roleCharter ? "Mijn facturen." : "Invoices / payables.", roleCharter ? "Dien je factuur in en vergelijk met de vaste verwachte betaling." : "Controleer verwachte betaling versus factuurbedrag, excl. en incl. btw.") + form + table(["Factuur", "Charter", "Week", "Routes", "Verwacht excl.", "Factuur excl.", "Verschil", "Status"], rows.map(inv => [inv.id, inv.charter, inv.week, inv.routes, euro(inv.expectedEx), euro(inv.invoiceEx), euro(inv.invoiceEx - inv.expectedEx), statusPill(inv.status)])); }
+function disputes() { const rows = state.disputes.filter(x => state.role === "office" || x.charter === currentCharter()); const routeOptions = state.routes.filter(r => state.role === "office" || r.assignedTo === currentCharter()); const form = `<form class="card soft-orange" id="disputeForm" style="margin-bottom:18px"><div class="card-title">Nieuwe dispute aanmaken</div><p>Dispute is een behandelqueue, geen filter in marketplace.</p><div class="form-grid"><select name="routeId">${routeOptions.map(r => `<option>${r.id}</option>`).join("")}</select><input class="input" name="reason" value="Wachttijd / gewicht / schade"><input class="input" name="amount" type="number" value="0"><select name="priority"><option>medium</option><option>high</option><option>low</option></select></div><textarea name="note" style="margin-top:12px">Leg kort uit wat er gecorrigeerd moet worden.</textarea><button class="btn orange full" style="margin-top:12px">Dispute versturen</button></form>`; return hero("Disputes to handle.", "Alle route- en factuurdisputes worden hier behandeld, zodat de marketplace schoon blijft.") + form + table(["Dispute", "Route", "Charter", "Reden", "Bedrag", "Prioriteit", "Status", "Notitie"], rows.map(d => [d.id, d.routeId, d.charter, d.reason, euro(d.amountEx), d.priority, statusPill(d.status), d.note])); }
+function charters() { if (state.role === "charter") { const vehicles = state.vehicles.filter(v => v.charter === currentCharter()); return hero("Mijn voertuigen.", "Voertuigmaten zijn belangrijk voor route-matching: beladingsruimte, laadvermogen en laadklep.") + table(["Voertuig", "Type", "Kenteken", "Laadvermogen", "Beladingsruimte", "Laadklep", "Status"], vehicles.map(v => [v.id, v.type, v.plate, `${number(v.capacityKg)} kg`, v.laadruimte, v.laadklep, statusPill(v.status)])); } return hero("Charters & voertuigen.", "Office ziet documenten, status, rating, zones en voertuigcapaciteit. Dit is de basis voor route approval.") + table(["Charter", "Contact", "Plaats", "Status", "Documenten", "Rating", "Zones", "Weekwaarde"], state.charters.map(c => [c.company, c.contact, c.city, statusPill(c.status), c.documents, c.rating, c.zones, euro(c.weeklyValue)])) + `<div class="section-head"><div><h2>Voertuigen</h2></div></div>` + table(["Voertuig", "Charter", "Type", "Kenteken", "Laadvermogen", "Beladingsruimte", "Laadklep", "Status"], state.vehicles.map(v => [v.id, v.charter, v.type, v.plate, `${number(v.capacityKg)} kg`, v.laadruimte, v.laadklep, statusPill(v.status)])); }
+function testing() { return hero("Eerste test checklist.", "Gebruik deze versie om met Stan of één charter te testen of de portal-logica klopt vóór echte productie-auth wordt gebouwd.") + `<div class="grid two"><div class="card soft-green"><div class="card-title">Wat werkt nu</div>${steps(["Professionele front screen", "Office/Charter login flow", "Supabase database tables", "Marketplace met vaste routeprijs", "Route aanvragen en hoger aanbod", "Approval queue", "Factuurbedrag versus verwachte betaling", "Dispute queue", "Voertuigmaten en beladingsruimte"] )}</div><div class="card soft-orange"><div class="card-title">Nog niet productie-klaar</div>${steps(["Supabase key moet nog geplakt worden", "Nog geen echte Supabase Auth rollen", "Test policies zijn permissive", "File upload opslag komt later", "MendriX API-sync komt later"] )}<button class="btn red full" data-act="resetDemo" style="margin-top:14px">Reset testdata</button></div></div>`; }
+function renderMain() { const views = { dashboard, upload, market, approval, requests, assigned, bids, invoices, disputes, charters, testing }; return (views[state.view] || dashboard)(); }
+function render() { if (state.view === "home") { app.innerHTML = landing(); bind(); return; } if (state.view === "login") { app.innerHTML = login(); bind(); return; } app.innerHTML = `<div class="app-shell">${nav()}<main class="main"><div class="topbar"><div class="kicker">${state.role === "office" ? "🔒 Office view" : "🌟 Charter view"}</div><div class="demo-note">${state.source === "supabase" ? "Supabase connected" : "Local mode: add Supabase key"}</div></div>${renderMain()}</main></div>`; bind(); }
+function bind() { document.querySelectorAll("[data-view]").forEach(el => el.addEventListener("click", () => go(el.dataset.view))); document.querySelectorAll("[data-act]").forEach(el => el.addEventListener("click", e => handleAction(e, el.dataset.act, el.dataset.id, el.dataset.role))); const charterSelect = document.getElementById("charterSelect"); if (charterSelect) charterSelect.addEventListener("change", e => { state.charter = e.target.value; saveLocal(); render(); }); const loginCharter = document.getElementById("loginCharter"); if (loginCharter) loginCharter.addEventListener("change", e => { state.charter = e.target.value; saveLocal(); }); const loginForm = document.getElementById("loginForm"); if (loginForm) loginForm.addEventListener("submit", e => { e.preventDefault(); finishLogin(state.role || "charter"); }); const zoneFilter = document.getElementById("zoneFilter"); const vehicleFilter = document.getElementById("vehicleFilter"); if (zoneFilter && vehicleFilter) { const apply = () => { document.querySelectorAll(".route-card").forEach(card => { const z = zoneFilter.value === "all" || card.dataset.zone === zoneFilter.value; const v = vehicleFilter.value === "all" || card.dataset.vehicle === vehicleFilter.value; card.style.display = z && v ? "block" : "none"; }); }; zoneFilter.addEventListener("change", apply); vehicleFilter.addEventListener("change", apply); } const routeForm = document.getElementById("routeForm"); if (routeForm) routeForm.addEventListener("submit", submitRoute); const invoiceForm = document.getElementById("invoiceForm"); if (invoiceForm) invoiceForm.addEventListener("submit", submitInvoice); const disputeForm = document.getElementById("disputeForm"); if (disputeForm) disputeForm.addEventListener("submit", submitDispute); }
+async function submitRoute(event) { event.preventDefault(); const f = new FormData(event.target); const route = { id: `MX-2026-TEST-${String(Date.now()).slice(-5)}`, title: f.get("title"), date: "2026-06-29", zone: f.get("zone"), from: "Wijchen", firstStop: "Demo eerste stop", lastStop: "Demo laatste stop", load: f.get("load"), vehicle: f.get("vehicle"), laadruimte: f.get("vehicle")?.includes("Bakwagen") ? "420 × 210 × 220 cm" : "370 × 178 × 190 cm", laadklep: f.get("vehicle")?.includes("laadklep") ? "Ja" : "Nee", stops: Number(f.get("stops")), km: Number(f.get("km")), hours: Number(f.get("hours")), kg: Number(f.get("kg")), equipment: "Steekwagen", expectedEx: Number(f.get("expectedEx")), customerRevenue: Number(f.get("customerRevenue")), status: "pending", requestStatus: "to approve", assignedTo: state.role === "charter" ? currentCharter() : "", source: state.role === "charter" ? "Charter request" : "Manual", invoiceStatus: "wacht op approval", dispute: "none", notes: "Handmatig toegevoegd voor test." }; const req = { id: `REQ-${String(Date.now()).slice(-5)}`, routeId: route.id, charter: state.role === "charter" ? currentCharter() : "Planning", type: "Manual route", requestedEx: route.expectedEx, vehicle: route.vehicle, driver: "Nog te kiezen", status: "to approve", note: "Aangemaakt via testformulier." }; state.routes.push(route); state.routeRequests.push(req); await upsert("portal_routes", dbRoute(route)); await upsert("portal_route_requests", dbRequest(req)); saveLocal(); toast("Route toegevoegd aan approval queue."); go("approval"); }
+async function submitInvoice(event) { event.preventDefault(); const f = new FormData(event.target); const assigned = state.routes.filter(r => r.assignedTo === currentCharter()); const expected = assigned.reduce((a, r) => a + r.expectedEx, 0); const inv = { id: String(f.get("invoice")), charter: currentCharter(), week: "2026-W26", routes: assigned.length, expectedEx: expected, invoiceEx: Number(f.get("amount")), status: Number(f.get("amount")) === expected ? "pending" : "review", submitted: "2026-06-29", note: f.get("note") }; state.invoices.push(inv); await upsert("portal_invoices", dbInvoice(inv)); saveLocal(); toast("Factuur verstuurd naar office review."); render(); }
+async function submitDispute(event) { event.preventDefault(); const f = new FormData(event.target); const d = { id: `DSP-${String(Date.now()).slice(-5)}`, routeId: f.get("routeId"), charter: state.role === "charter" ? currentCharter() : "Office", reason: f.get("reason"), amountEx: Number(f.get("amount")), status: "to handle", priority: f.get("priority"), note: f.get("note") }; state.disputes.push(d); await upsert("portal_disputes", dbDispute(d)); saveLocal(); toast("Dispute aangemaakt."); render(); }
+async function handleAction(event, action, id, role) { event.preventDefault(); if (action === "home" || action === "logout") { state.view = "home"; state.role = null; saveLocal(); render(); return; } if (action === "openLogin") { enter(role || "charter"); return; } if (action === "resetDemo") { localStorage.removeItem(STORE_KEY); state = structuredClone(seed); toast("Testdata gereset."); render(); return; } if (action === "bulkImport") { const route = { ...structuredClone(seed.routes[1]), id: `MX-2026-BULK-${String(Date.now()).slice(-5)}`, title: "Bulk import testroute", status: "open", requestStatus: "published", assignedTo: "", source: "Excel import" }; state.routes.push(route); await upsert("portal_routes", dbRoute(route)); saveLocal(); toast("Bulk import gesimuleerd: 1 route toegevoegd."); go("market"); return; } if (action === "requestRoute" || action === "higherOffer") { const route = state.routes.find(r => r.id === id); const amount = action === "higherOffer" ? route.expectedEx + 25 : route.expectedEx; const req = { id: `REQ-${String(Date.now()).slice(-5)}`, routeId: id, charter: currentCharter(), type: action === "higherOffer" ? "Hoger aanbod" : "Route aanvragen", requestedEx: amount, vehicle: route.vehicle, driver: "Test chauffeur", status: "to approve", note: action === "higherOffer" ? "Hoger aanbod binnen route marketplace." : "Route aangevraagd via charter portal." }; state.routeRequests.push(req); await upsert("portal_route_requests", dbRequest(req)); saveLocal(); toast("Aanvraag naar planning gestuurd."); go("requests"); return; } if (action === "approveRequest") { const req = state.routeRequests.find(r => r.id === id); if (!req) return; req.status = "approved"; const route = state.routes.find(r => r.id === req.routeId); if (route) { route.status = "assigned"; route.requestStatus = "approved"; route.assignedTo = req.charter; route.expectedEx = req.requestedEx; route.invoiceStatus = "te betalen"; await upsert("portal_routes", dbRoute(route)); } await updateDb("portal_route_requests", { status: "approved", updated_at: new Date().toISOString() }, { id }); saveLocal(); toast("Route-aanvraag goedgekeurd en toegewezen."); render(); return; } if (action === "rejectRequest") { const req = state.routeRequests.find(r => r.id === id); if (req) req.status = "rejected"; await updateDb("portal_route_requests", { status: "rejected", updated_at: new Date().toISOString() }, { id }); saveLocal(); toast("Aanvraag afgewezen."); render(); return; } if (action === "approveRoute") { const route = state.routes.find(r => r.id === id); if (route) { route.status = "assigned"; route.requestStatus = "approved"; route.assignedTo = route.assignedTo || "Planning assigned"; route.invoiceStatus = "te betalen"; await upsert("portal_routes", dbRoute(route)); } saveLocal(); toast("Route goedgekeurd."); render(); return; } if (action === "approveBid") { const bid = state.bids.find(b => b.id === id); if (!bid) return; bid.status = "approved"; const route = state.routes.find(r => r.id === bid.routeId); if (route) { route.status = "assigned"; route.assignedTo = bid.charter; route.expectedEx = bid.amountEx; route.requestStatus = "approved"; await upsert("portal_routes", dbRoute(route)); } await updateDb("portal_bids", { status: "approved", updated_at: new Date().toISOString() }, { id }); saveLocal(); toast("Bid goedgekeurd en route toegewezen."); render(); return; } if (action === "createDispute") { state.view = "disputes"; saveLocal(); render(); toast("Kies route en verstuur dispute."); return; } }
+(async function init(){ render(); const ok = await loadFromSupabase(); if (ok) render(); })();
