@@ -1,0 +1,141 @@
+/* Final DESIGN.md alignment: premium blue-white logistics SaaS shell. */
+:root {
+  --cr-ink: #0b1220;
+  --cr-ink-2: #172338;
+  --cr-muted: #42526b;
+  --cr-faint: #6b7a90;
+  --cr-blue: #0b63ce;
+  --cr-blue-2: #074ea3;
+  --cr-blue-3: #073b7d;
+  --cr-sky: #2f80ff;
+  --cr-green: #14804a;
+  --cr-amber: #b7791f;
+  --cr-red: #c2410c;
+  --cr-line: #d9e4f2;
+  --cr-line-strong: #bfd1e7;
+  --cr-page: #f6f9fc;
+  --cr-panel: rgba(255, 255, 255, 0.95);
+  --radius: 12px;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.86), rgba(246,249,252,.92)),
+    linear-gradient(120deg, #f6f9fc 0%, #eef6ff 42%, #ffffff 100%) !important;
+}
+
+.app-shell {
+  grid-template-columns: 280px minmax(0, 1fr) !important;
+}
+
+.brand-card,
+.hero,
+.card,
+.route-card,
+.table-wrap,
+.empty,
+.login-card,
+.landing-nav,
+.landing-hero,
+.control-room-context,
+.sidebar-note {
+  border-radius: 12px !important;
+}
+
+.hero {
+  padding: 26px 28px !important;
+}
+
+.hero h1 {
+  font-size: clamp(30px, 3.4vw, 40px) !important;
+  font-weight: 800 !important;
+}
+
+.card,
+.route-card,
+.table-wrap {
+  border-color: var(--cr-line) !important;
+  background: var(--cr-panel) !important;
+}
+
+.btn,
+.input,
+select,
+textarea {
+  border-radius: 10px !important;
+}
+
+.btn.primary,
+.btn.purple {
+  background: linear-gradient(135deg, var(--cr-blue), var(--cr-blue-2)) !important;
+}
+
+.btn.orange {
+  background: linear-gradient(135deg, var(--cr-amber), #8f5a12) !important;
+}
+
+.btn.red {
+  background: linear-gradient(135deg, var(--cr-red), #9a3412) !important;
+}
+
+.btn.green {
+  background: linear-gradient(135deg, var(--cr-green), #0f6b3d) !important;
+}
+
+.kicker,
+.state-note,
+.demo-note {
+  border-radius: 999px !important;
+  border-color: var(--cr-line) !important;
+  background: #ffffff !important;
+  color: var(--cr-blue-2) !important;
+}
+
+th {
+  background: #eef6ff !important;
+  color: #42526b !important;
+}
+
+td {
+  color: #26374d !important;
+}
+
+.status.open,
+.status.actief,
+.status.goedgekeurd,
+.status.afgerond,
+.status.toegewezen,
+.pill.blue {
+  background: #e8f2ff !important;
+  color: var(--cr-blue-2) !important;
+  border-color: #cddff7 !important;
+}
+
+.status.te-beoordelen,
+.status.wacht-op-goedkeuring,
+.status.controle-nodig,
+.pill.orange {
+  background: #fff7e8 !important;
+  color: var(--cr-amber) !important;
+  border-color: #edd7aa !important;
+}
+
+.status.afgewezen,
+.status.te-behandelen,
+.status.ontbreekt,
+.pill.red {
+  background: #fff1ed !important;
+  color: var(--cr-red) !important;
+  border-color: #f4c7b5 !important;
+}
+
+.control-room-context {
+  display: grid;
+  gap: 4px;
+}
+
+@media (max-width: 720px) {
+  .hero {
+    padding: 22px !important;
+  }
+}
