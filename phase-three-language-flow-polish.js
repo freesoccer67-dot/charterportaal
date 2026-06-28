@@ -7,7 +7,6 @@
     [/route performance/gi, "routeprestaties"],
     [/charter performance/gi, "charterprestaties"],
     [/profitability/gi, "rendement"],
-    [/finance/g, "financieel"],
     [/Marketplace/g, "Marktplaats"]
   ];
 
