@@ -1,17 +1,37 @@
 (function () {
   const replacements = [
     [/Finance & disputes/g, "Facturen & disputes"],
+    [/Finance/g, "Financien"],
+    [/\bfinance\b/g, "financieel"],
     [/Mijn transporten/g, "Mijn routes"],
     [/read-only/g, "vast"],
     [/completed/g, "afgerond"],
     [/route performance/gi, "routeprestaties"],
     [/charter performance/gi, "charterprestaties"],
     [/profitability/gi, "rendement"],
-    [/Marketplace/g, "Marktplaats"]
+    [/Marketplace/g, "Marktplaats"],
+    [/\bmarketplace\b/g, "marktplaats"],
+    [/GEM\. PAYOUT/g, "GEM. BETALING"],
+    [/PAYOUT/g, "BETALING"],
+    [/RATING/g, "SCORE"]
+  ];
+
+  const protectedAttrs = [
+    ["data-view=\"finance\"", "__VIEW_FINANCE__"],
+    ["data-view=\"charterfinance\"", "__VIEW_CHARTER_FINANCE__"],
+    ["data-view=\"chartermarkt\"", "__VIEW_CHARTER_MARKT__"]
   ];
 
   function dutch(html) {
-    return replacements.reduce((text, [pattern, value]) => String(text).replace(pattern, value), html);
+    let text = String(html);
+    protectedAttrs.forEach(([original, token]) => {
+      text = text.replaceAll(original, token);
+    });
+    text = replacements.reduce((current, [pattern, value]) => current.replace(pattern, value), text);
+    protectedAttrs.forEach(([original, token]) => {
+      text = text.replaceAll(token, original);
+    });
+    return text;
   }
 
   if (typeof navigatie === "function") {
