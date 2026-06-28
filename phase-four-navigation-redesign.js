@@ -1,6 +1,21 @@
 (function () {
   const NAV_VERSION = "phase-four-navigation-2026-06-28";
   const htmlEsc = value => String(value ?? "").replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  const labelReplacements = [
+    [/Finance & disputes/g, "Facturen & disputes"],
+    [/Finance/g, "Financien"],
+    [/\bfinance\b/g, "financieel"],
+    [/Marketplace/g, "Marketplace"],
+    [/Mijn transporten/g, "Mijn routes"],
+    [/route performance/gi, "routeprestaties"],
+    [/charter performance/gi, "charterprestaties"],
+    [/profitability/gi, "rendement"],
+    [/read-only/g, "vast"]
+  ];
+
+  function polish(html) {
+    return labelReplacements.reduce((text, [pattern, value]) => String(text).replace(pattern, value), html);
+  }
 
   function countOpenDisputes() {
     return state.disputes.filter(d => !["afgerond", "afgewezen"].includes(String(d.status || "").toLowerCase())).length;
@@ -53,8 +68,8 @@
 
   function shellSubtitle() {
     return state.role === "office"
-      ? "Control room voor routes, aanvragen, finance en charters."
-      : "Charter workspace voor marktplaats, routes, facturen en profiel.";
+      ? "Control room voor routes, aanvragen, financien en charters."
+      : "Charter workspace voor marketplace, routes, facturen en profiel.";
   }
 
   navigatie = function () {
@@ -75,21 +90,21 @@
   renderMain = function () {
     if (state.role === "office" && state.view === "finance") {
       const payments = typeof betalingen === "function" ? `<section class="module-section"><div class="section-head"><div><h2>Betalingen</h2><p>Verwachte betaling, factuurstatus en open controles per charter.</p></div></div>${zonderHero(betalingen())}</section>` : "";
-      return dutch(invoices() + disputes() + payments);
+      return polish(invoices() + disputes() + payments);
     }
     if (state.role === "office" && state.view === "charterbeheer") {
-      return dutch(charterbeheer());
+      return polish(charterbeheer());
     }
     if (state.role === "charter" && state.view === "applications") {
-      return dutch(requests());
+      return polish(requests());
     }
     if (state.role === "charter" && state.view === "invoices") {
-      return dutch(invoices());
+      return polish(invoices());
     }
     if (state.role === "charter" && state.view === "disputes") {
-      return dutch(disputes());
+      return polish(disputes());
     }
-    return mainBeforePhaseFour();
+    return polish(mainBeforePhaseFour());
   };
 
   state._phaseFourNavVersion = NAV_VERSION;
