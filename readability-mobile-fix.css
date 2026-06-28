@@ -1,0 +1,277 @@
+/* Readability and iPhone scrolling fixes for Logistics Command Deck. */
+html, body {
+  overflow-x: hidden !important;
+}
+
+.hero,
+.landing-hero {
+  min-height: auto !important;
+}
+
+.hero h1,
+.landing-hero h1,
+.hero .title,
+.landing-hero .title {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: 0 18px 48px rgba(0, 0, 0, .32) !important;
+  font-size: clamp(34px, 6vw, 68px) !important;
+  line-height: .96 !important;
+  letter-spacing: -2.4px !important;
+  max-width: 960px !important;
+}
+
+.hero p,
+.landing-hero p,
+.hero .muted,
+.landing-hero .muted {
+  color: #dbeafe !important;
+  -webkit-text-fill-color: #dbeafe !important;
+  font-size: clamp(15px, 1.55vw, 18px) !important;
+  line-height: 1.55 !important;
+}
+
+.hero .kicker,
+.landing-hero .kicker,
+.hero .demo-note,
+.landing-hero .demo-note {
+  color: #0f4fbf !important;
+  -webkit-text-fill-color: #0f4fbf !important;
+}
+
+.card,
+.route-card,
+.metric,
+.metric-card,
+.intel-metrics div {
+  overflow-wrap: anywhere !important;
+}
+
+.metric-value,
+.metric-card strong,
+.intel-metrics b {
+  font-size: clamp(28px, 4.5vw, 42px) !important;
+  line-height: 1.05 !important;
+}
+
+.section-head h2 {
+  font-size: clamp(24px, 3vw, 34px) !important;
+}
+
+.table-wrap {
+  max-width: 100% !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    display: block !important;
+  }
+
+  .sidebar {
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    padding: 16px !important;
+    border-right: 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,.12) !important;
+  }
+
+  .main {
+    padding: 16px !important;
+  }
+
+  .grid.four,
+  .grid.three,
+  .metric-grid,
+  .intel-metrics,
+  .price-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    background-size: 22px 22px, 22px 22px, auto, auto, auto !important;
+  }
+
+  .sidebar {
+    padding: 12px !important;
+  }
+
+  .brand-card {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  .brand-title {
+    font-size: 16px !important;
+  }
+
+  .brand-card p {
+    font-size: 12px !important;
+  }
+
+  .nav-btn {
+    padding: 10px 11px !important;
+    border-radius: 14px !important;
+  }
+
+  .topbar {
+    display: grid !important;
+    gap: 10px !important;
+    padding: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .main {
+    padding: 12px !important;
+  }
+
+  .hero,
+  .landing-hero {
+    padding: 22px 18px !important;
+    border-radius: 22px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .hero h1,
+  .landing-hero h1,
+  .hero .title,
+  .landing-hero .title {
+    font-size: clamp(32px, 12vw, 44px) !important;
+    line-height: 1 !important;
+    letter-spacing: -1.5px !important;
+  }
+
+  .hero p,
+  .landing-hero p {
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+  }
+
+  .hero-actions,
+  .actions,
+  .filters {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 9px !important;
+  }
+
+  .btn,
+  .btn.small,
+  .btn.full {
+    width: 100% !important;
+    min-height: 46px !important;
+    justify-content: center !important;
+  }
+
+  .grid,
+  .grid.two,
+  .grid.three,
+  .grid.four,
+  .grid.auto,
+  .form-grid,
+  .form-grid.three,
+  .metric-grid,
+  .intel-metrics,
+  .price-strip {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .card,
+  .route-card,
+  .login-card,
+  .empty,
+  .charter-intel {
+    padding: 16px !important;
+    border-radius: 18px !important;
+  }
+
+  .metric,
+  .metric-card,
+  .intel-metrics div {
+    min-height: auto !important;
+    padding: 14px !important;
+  }
+
+  .metric-value,
+  .metric-card strong,
+  .intel-metrics b {
+    font-size: 32px !important;
+  }
+
+  .section-head {
+    display: grid !important;
+    gap: 8px !important;
+    align-items: start !important;
+    margin: 18px 0 10px !important;
+  }
+
+  .section-head h2 {
+    font-size: 24px !important;
+    line-height: 1.1 !important;
+  }
+
+  .section-head p,
+  .card p,
+  .muted {
+    font-size: 13px !important;
+    line-height: 1.45 !important;
+  }
+
+  .route-top {
+    display: grid !important;
+    gap: 10px !important;
+  }
+
+  .route-title {
+    font-size: 18px !important;
+    line-height: 1.2 !important;
+  }
+
+  .route-info,
+  .intel-flow {
+    gap: 7px !important;
+  }
+
+  .pill,
+  .status,
+  .intel-flow span {
+    font-size: 11px !important;
+    padding: 6px 9px !important;
+  }
+
+  table {
+    min-width: 720px !important;
+  }
+
+  th,
+  td {
+    padding: 11px 12px !important;
+    font-size: 12px !important;
+  }
+
+  .toast {
+    left: 12px !important;
+    right: 12px !important;
+    bottom: 12px !important;
+    max-width: none !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .hero h1,
+  .landing-hero h1,
+  .hero .title,
+  .landing-hero .title {
+    font-size: 30px !important;
+  }
+
+  .metric-value,
+  .metric-card strong,
+  .intel-metrics b {
+    font-size: 29px !important;
+  }
+}
