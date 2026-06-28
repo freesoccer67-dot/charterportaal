@@ -50,7 +50,7 @@
       { view: "routebeheer", code: "RT", label: "Routes", count: state.routes.filter(r => ["te publiceren", "open", "wacht op goedkeuring"].includes(String(r.status || "").toLowerCase())).length, aliases: ["routes", "upload", "routeReview", "operatie", "execution", "loading"] },
       { view: "approval", code: "AB", label: "Aanvragen & biedingen", count: countRequests() },
       { view: "finance", code: "FD", label: "Facturen & disputes", count: countInvoices() + countOpenDisputes(), aliases: ["invoices", "disputes", "betalingen"] },
-      { view: "charterbeheer", code: "CH", label: "Charters", count: countDocs(), aliases: ["netwerk", "charters", "documents", "vehicles"] },
+      { view: "charters", code: "CH", label: "Charters", count: countDocs(), aliases: ["charterbeheer", "netwerk", "documents", "vehicles"] },
       { view: "instellingen", code: "IN", label: "Instellingen" }
     ];
   }
@@ -91,9 +91,6 @@
     if (state.role === "office" && state.view === "finance") {
       const payments = typeof betalingen === "function" ? `<section class="module-section"><div class="section-head"><div><h2>Betalingen</h2><p>Verwachte betaling, factuurstatus en open controles per charter.</p></div></div>${zonderHero(betalingen())}</section>` : "";
       return polish(invoices() + disputes() + payments);
-    }
-    if (state.role === "office" && state.view === "charterbeheer") {
-      return polish(charterbeheer());
     }
     if (state.role === "charter" && state.view === "applications") {
       return polish(requests());
